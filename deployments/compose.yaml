@@ -1,0 +1,43 @@
+name: panlyackerp-mvp
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: panlyackerp
+      POSTGRES_USER: panlyack
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    ports: ["127.0.0.1:55432:5432"]
+    volumes: ["postgres_data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U panlyack -d panlyackerp"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+  ai:
+    build: ../ai-service
+    environment:
+      EXTRACTOR_MODE: ${EXTRACTOR_MODE:-demo}
+      AI_API_KEY: ${AI_API_KEY:?Set AI_API_KEY}
+      MODEL_BASE_URL: ${MODEL_BASE_URL:-http://host.docker.internal:11434}
+      MODEL_NAME: ${MODEL_NAME:-gemma3:4b}
+    ports: ["127.0.0.1:8091:8000"]
+  erp:
+    build:
+      context: ..
+      dockerfile: deployments/docker/Dockerfile
+    environment:
+      DATABASE_URL: postgres://panlyack:${POSTGRES_PASSWORD}@postgres:5432/panlyackerp?sslmode=disable
+      HTTP_ADDR: :8080
+      APP_ENV: development
+      AI_BASE_URL: http://ai:8000
+      AI_API_KEY: ${AI_API_KEY}
+      SESSION_SECRET: ${SESSION_SECRET:?Set SESSION_SECRET}
+      DOCUMENT_STORAGE_PATH: /data/documents
+    ports: ["127.0.0.1:8080:8080"]
+    volumes: ["documents:/data/documents"]
+    depends_on:
+      postgres: {condition: service_healthy}
+      ai: {condition: service_started}
+volumes:
+  postgres_data:
+  documents:

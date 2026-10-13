@@ -1,0 +1,11 @@
+# Delivery checklist
+- [x] Foundation: app boots; database and extractor readiness; tested Windows start/stop scripts.
+- [x] Domain: exact money; invoice transitions; FIFO/AVCO; balanced FR/US posting; payment limits.
+- [x] Persistence: module schemas, Goose migrations and generated identity sqlc query.
+- [x] Workflow: transaction, organization scope, locks, idempotency, audit, outbox and projections.
+- [x] Extraction: bounded uploads, local storage, FastAPI schemas, explicit demo and configurable real adapter.
+- [x] UI: dashboard, review, inventory, journal, cash and actionable errors.
+- [x] Verification: tests, vet, empty-database migration, browser purchase flow and documentation.
+- [ ] Exercise extraction with an installed vision model and implement PDF rasterization.
+- [ ] Production authentication, authorization and operational hardening.
+- [ ] Finish broader blueprint capabilities listed in docs/implementation-status.md.

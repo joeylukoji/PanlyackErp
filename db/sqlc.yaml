@@ -1,0 +1,11 @@
+version: "2"
+sql:
+  - engine: postgresql
+    queries: queries/identity
+    schema: migrations
+    gen:
+      go:
+        package: identitysql
+        out: ../internal/modules/identity/adapters/postgres/identitysql
+        sql_package: pgx/v5
+        emit_empty_slices: true

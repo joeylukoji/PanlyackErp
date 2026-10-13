@@ -1,0 +1,15 @@
+.env
+.env.*
+!.env.example
+.venv/
+__pycache__/
+.pytest_cache/
+node_modules/
+bin/
+var/
+*.exe
+*.log
+graphify-out/.graphify*
+graphify-out/cache/
+.impeccable/questions/
+*.egg-info/

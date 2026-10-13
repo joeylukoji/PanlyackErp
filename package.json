@@ -1,0 +1,7 @@
+{
+ "name": "panlyackerp-assets",
+ "private": true,
+ "scripts": {"build:css": "tailwindcss -i web/assets/app.css -o web/static/app.css --minify", "build": "npm run build:css"},
+ "devDependencies": {"@tailwindcss/cli": "4.1.18", "tailwindcss": "4.1.18"},
+ "dependencies": {"htmx.org": "2.0.8"}
+}

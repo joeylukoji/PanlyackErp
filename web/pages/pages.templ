@@ -1,0 +1,189 @@
+package pages
+
+import (
+ "fmt"
+ "strconv"
+ "github.com/shopspring/decimal"
+ documents "panlyackerp/internal/modules/documents/domain"
+ inventory "panlyackerp/internal/modules/inventory/application"
+ accounting "panlyackerp/internal/modules/accounting/ports"
+ cash "panlyackerp/internal/modules/cash/ports"
+ reporting "panlyackerp/internal/modules/reporting/ports"
+)
+
+func Money(s string) string { d,err:=decimal.NewFromString(s);if err!=nil{return s};return d.StringFixed(2) }
+func Status(s string) string { switch s {case "POSTED":return "Comptabilisée";case "CONFIRMED":return "Confirmée";default:return "À vérifier"} }
+func InvoiceURL(id string) string { return "/app/invoices/"+id }
+
+templ Layout(title,active string) {
+ <!DOCTYPE html>
+ <html lang="fr"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>{ title } · PanlyackERP</title><link rel="stylesheet" href="/static/app.css"/><script src="/static/htmx.min.js" defer></script><meta name="htmx-config" content="{&quot;allowEval&quot;:false,&quot;allowScriptTags&quot;:false}"/></head>
+ <body><a class="skip" href="#main">Aller au contenu</a><div class="shell">
+ <aside class="sidebar"><a class="brand" href="/app/dashboard">PanlyackERP</a><nav aria-label="Navigation principale">
+ for _,item:=range []struct{Path,Label string}{{"dashboard","Vue d’ensemble"},{"invoices","Factures"},{"inventory","Stock"},{"accounting","Comptabilité"},{"cash","Trésorerie"}} {
+  <a href={ templ.SafeURL("/app/"+item.Path) } aria-current={ activePage(active,item.Path) }>{ item.Label }</a>
+ }
+ </nav><div class="workspace">Panlyack Trading<br/>Espace de démonstration local</div></aside>
+ <div><header class="topbar"><span>Panlyack Trading</span><span class="muted">USD · PCG · FIFO</span></header><main id="main" class="content">{ children... }</main></div>
+ </div></body></html>
+}
+
+templ Heading(title,description string) {
+<div class="page-heading"><div><h1>{ title }</h1><p class="muted">{ description }</p></div>{ children... }</div>
+}
+
+templ KPI(s reporting.Summary) {
+ <dl class="metrics" id="kpis" hx-get="/app/_partials/dashboard/kpis" hx-trigger="every 30s" hx-swap="outerHTML">
+ for _,m:=range []struct{Label,Value string}{{"Chiffre d’affaires",s.Revenue},{"Trésorerie disponible",s.Cash},{"Valeur du stock",s.Inventory},{"Dettes fournisseurs",s.Payables}} {
+ <div class="metric"><dt>{ m.Label }</dt><dd>{ Money(m.Value) } <small class="muted text-xs">USD</small></dd></div>
+ }
+ </dl>
+}
+
+templ Dashboard(s reporting.Summary,invoices []documents.Invoice) {
+ @Layout("Vue d’ensemble","dashboard") {
+ @Heading("Vue d’ensemble","Vos opérations, reliées à leurs documents.") {
+<a class="button" href="/app/invoices/new">Importer une facture</a>
+}
+ @KPI(s)
+ <div class="panel"><div class="panel-body"><h2>Situation de l’activité</h2><div class="form-grid"><p>Achats : <strong>{ Money(s.Purchases) } USD</strong></p><p>Créances clients : <strong>{ Money(s.Receivables) } USD</strong></p><p>Coût des ventes : <strong>{ Money(s.Cost) } USD</strong></p><p>Factures comptabilisées : <strong>{ strconv.Itoa(s.Count) }</strong></p></div></div></div>
+ @InvoiceTable(invoices)
+ }
+}
+
+templ InvoiceTable(invoices []documents.Invoice) {
+ <div class="panel">
+ if len(invoices)==0 {
+<div class="empty"><h2>Votre première facture commence ici</h2><p class="muted">Importez un document, vérifiez les lignes et validez ses effets sur votre activité.</p><a href="/app/invoices/new">Importer un document</a></div>
+} else {
+
+ <div class="table-scroll"><table><caption>Factures récentes</caption><thead><tr><th>Référence</th><th>Partenaire</th><th>Date</th><th>Statut</th><th class="amount">Montant</th></tr></thead><tbody>
+ for _,i:=range invoices {
+<tr><td><a href={ templ.SafeURL(InvoiceURL(i.ID)) }>{ i.Number }</a></td><td>{ i.Partner }</td><td>{ i.IssueDate }</td><td><span class="badge">{ Status(i.Status) }</span></td><td class="amount">{ Money(i.Total) } { i.Currency }</td></tr>
+}
+ </tbody></table></div>
+ }
+ </div>
+}
+
+templ Invoices(invoices []documents.Invoice) {
+@Layout("Factures","invoices") {
+@Heading("Factures","Chaque opération conserve son document d’origine.") {
+<a class="button" href="/app/invoices/new">Importer une facture</a>
+} @InvoiceTable(invoices)
+}
+}
+
+templ Upload(csrf,message string) {
+ @Layout("Importer une facture","invoices") {
+@Heading("Importer une facture","Ajoutez une photo nette ou un PDF. Vous vérifierez les données avant toute opération.") {
+}
+ <div class="panel"><div class="panel-body">
+ if message!="" {
+<div class="notice error" role="alert">{ message }</div>
+}
+ <form method="post" action="/app/invoices/upload" enctype="multipart/form-data" hx-post="/app/invoices/upload" hx-encoding="multipart/form-data" hx-target="body" hx-disabled-elt="find button">
+ <input type="hidden" name="csrf" value={ csrf }/><label for="document">Document de la facture</label><input id="document" type="file" name="document" accept="image/png,image/jpeg,application/pdf" required/><p class="muted">PNG, JPEG ou PDF · 10 Mo maximum. L’extraction réelle par vision accepte les images.</p>
+ <div class="actions"><button type="submit">Extraire les données</button><span class="htmx-indicator" role="status">Analyse en cours…</span></div>
+ </form></div></div>
+}
+}
+
+templ Review(i documents.Invoice,csrf,message string) {
+ @Layout("Vérifier la facture","invoices") {
+ @Heading(i.Number,"Vérifiez le document et les données avant de comptabiliser.") {
+<span class="badge">{ Status(i.Status) }</span>
+}
+ if message!="" {
+<div class="notice error" role="alert">{ message }</div>
+}
+ if i.ExtractionMode=="demo" {
+<div class="notice">Mode démonstration : les 14 lignes ci-dessous sont simulées. Elles ne sont pas extraites de votre fichier.</div>
+}
+ for _, warning := range i.Warnings {
+<div class="notice">{ warning }</div>
+}
+ if i.Status=="POSTED" {
+<div class="notice" role="status">Facture comptabilisée. Stock, journal, trésorerie et tableau de bord ont été mis à jour. Ce document est désormais en lecture seule.</div>
+}
+ <div class="review-grid"><section class="panel"><div class="panel-body"><h2>Document d’origine</h2><a href={ templ.SafeURL(InvoiceURL(i.ID)+"/document") } target="_blank" rel="noopener">Ouvrir le document</a><p class="muted">Confiance indiquée : { i.Confidence }</p></div><iframe class="preview" title="Document d’origine" src={ templ.SafeURL(InvoiceURL(i.ID)+"/document") }></iframe></section>
+ <section class="panel"><div class="panel-body"><h2>Données de la facture</h2>
+ <form method="post" action={ templ.SafeURL(InvoiceURL(i.ID)+"/review") }>
+ <input type="hidden" name="csrf" value={ csrf }/><input type="hidden" name="version" value={ strconv.Itoa(i.Version) }/>
+ <fieldset disabled?={ i.Status!="NEEDS_REVIEW" }><div class="form-grid">
+ <div><label for="number">Référence</label><input id="number" name="number" value={ i.Number } required maxlength="100"/></div>
+ <div><label for="partner">Fournisseur / client</label><input id="partner" name="partner" value={ i.Partner } required maxlength="200"/></div>
+ <div><label for="date">Date</label><input id="date" name="issue_date" type="date" value={ i.IssueDate } required/></div>
+ <div><label for="direction">Opération</label><select id="direction" name="direction"><option value="PURCHASE" selected?={ i.Direction=="PURCHASE" }>Achat</option><option value="SALE" selected?={ i.Direction=="SALE" }>Vente</option></select></div>
+ <div><label for="currency">Devise</label><select id="currency" name="currency"><option value="USD">USD</option></select></div>
+ <div><label for="total">Total, taxes incluses</label><input id="total" name="total" inputmode="decimal" value={ i.Total } required/></div>
+ </div><p class="muted mt-6">Les SKU identiques désignent le même produit. Un nouveau SKU crée un produit à la comptabilisation d’un achat.</p>
+ <div class="table-scroll"><table class="line-table"><thead><tr><th>SKU</th><th>Produit</th><th>Unité</th><th>Quantité</th><th>Prix unitaire</th><th>Taxe %</th><th>Action</th></tr></thead><tbody>
+ for n,l:=range i.Lines {
+<tr>
+ <td><input aria-label={ fmt.Sprintf("SKU ligne %d",n+1) } name="sku" value={ l.SKU }/></td>
+ <td><input class="name" aria-label={ fmt.Sprintf("Produit ligne %d",n+1) } name="name" value={ l.Name } required/></td>
+ <td><input aria-label={ fmt.Sprintf("Unité ligne %d",n+1) } name="unit" value={ l.Unit } required/></td>
+ <td><input aria-label={ fmt.Sprintf("Quantité ligne %d",n+1) } name="quantity" value={ l.Quantity } inputmode="decimal" required/></td>
+ <td><input aria-label={ fmt.Sprintf("Prix ligne %d",n+1) } name="unit_price" value={ l.UnitPrice } inputmode="decimal" required/></td>
+ <td><input aria-label={ fmt.Sprintf("Taxe ligne %d",n+1) } name="tax_rate" value={ l.TaxRate } inputmode="decimal" required/></td>
+<td><button class="secondary" name="remove_line" value={ strconv.Itoa(n) } formnovalidate aria-label={ fmt.Sprintf("Supprimer la ligne %d",n+1) }>Retirer</button></td>
+ </tr>
+}
+ </tbody></table></div>
+ if i.Status=="NEEDS_REVIEW" && len(i.Lines)<100 {
+<button class="secondary" name="action" value="add_line" formnovalidate>Ajouter une ligne</button>
+}
+ <h2 class="mt-7">Règlement</h2><p class="muted">Le solde non réglé devient une dette fournisseur ou une créance client.</p><div class="form-grid">
+ for _,method:=range []string{"CASH","BANK","MOBILE_MONEY","CARD"} {
+<div><label for={ method }>{ paymentLabel(method) }</label><input id={ method } name={ "payment_"+method } value={ paymentAmount(i,method) } inputmode="decimal"/></div>
+}
+ </div>
+ if i.Status=="NEEDS_REVIEW" {
+<div class="actions"><button name="action" value="confirm">Confirmer les données</button><button class="secondary" name="action" value="save">Enregistrer</button></div>
+}
+ </fieldset></form>
+ if i.Status=="CONFIRMED" {
+<div class="actions"><form method="post" action={ templ.SafeURL(InvoiceURL(i.ID)+"/post") }><input type="hidden" name="csrf" value={ csrf }/><button>Comptabiliser la facture</button></form><form method="post" action={ templ.SafeURL(InvoiceURL(i.ID)+"/reopen") }><input type="hidden" name="csrf" value={ csrf }/><button class="secondary">Reprendre la vérification</button></form></div>
+}
+ if i.Status=="POSTED" {
+<div class="actions"><a href="/app/accounting">Voir le journal</a><a href="/app/dashboard">Voir les soldes</a></div>
+}
+ </div></section></div>
+}
+}
+
+func paymentLabel(method string) string { return map[string]string{"CASH":"Espèces","BANK":"Banque","MOBILE_MONEY":"Mobile money","CARD":"Carte"}[method] }
+func paymentAmount(i documents.Invoice,method string)string { for _,p:=range i.Payments {if p.Method==method{return p.Amount}};return "0" }
+
+templ Inventory(products []inventory.Product) {
+@Layout("Stock","inventory") {
+@Heading("Stock","Quantités disponibles et valeur comptable des marchandises.") {
+} <div class="panel table-scroll"><table><thead><tr><th>SKU</th><th>Produit</th><th>Unité</th><th class="amount">Disponible</th><th class="amount">Valeur USD</th></tr></thead><tbody>
+for _,p:=range products {
+<tr><td>{ p.SKU }</td><td>{ p.Name }</td><td>{ p.Unit }</td><td class="amount">{ p.Quantity.String() }</td><td class="amount">{ p.Value.StringFixed(2) }</td></tr>
+}</tbody></table></div>
+} }
+
+templ Accounting(rows []accounting.JournalRow) {
+@Layout("Comptabilité","accounting") {
+@Heading("Journal comptable","Écritures validées, équilibrées et non modifiables.") {
+} <div class="panel table-scroll"><table><thead><tr><th>Date</th><th>Référence</th><th>Compte</th><th>Libellé</th><th class="amount">Débit USD</th><th class="amount">Crédit USD</th></tr></thead><tbody>
+for _,r:=range rows {
+<tr><td>{ r.Date }</td><td>{ r.Reference }</td><td>{ r.Code }</td><td>{ r.Name }</td><td class="amount">{ Money(r.Debit) }</td><td class="amount">{ Money(r.Credit) }</td></tr>
+}</tbody></table></div>
+} }
+
+templ Cash(accounts []cash.Account,movements []cash.Movement) {
+@Layout("Trésorerie","cash") {
+@Heading("Trésorerie","Soldes par moyen de paiement et historique des mouvements.") {
+} <dl class="metrics">
+for _,a:=range accounts {
+<div class="metric"><dt>{ paymentLabel(a.Method) }</dt><dd>{ Money(a.Balance) } <small class="text-xs">USD</small></dd></div>
+}</dl><div class="panel table-scroll"><table><thead><tr><th>Date</th><th>Moyen de paiement</th><th class="amount">Mouvement USD</th></tr></thead><tbody>
+for _,m:=range movements {
+<tr><td>{ m.Date }</td><td>{ paymentLabel(m.Method) }</td><td class="amount">{ Money(m.Amount) }</td></tr>
+}</tbody></table></div>
+} }
+
+func activePage(active,path string) string { if active==path { return "page" };return "false" }
