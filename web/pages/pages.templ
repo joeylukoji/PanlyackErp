@@ -15,16 +15,31 @@ func Money(s string) string { d,err:=decimal.NewFromString(s);if err!=nil{return
 func Status(s string) string { switch s {case "POSTED":return "Comptabilisée";case "CONFIRMED":return "Confirmée";default:return "À vérifier"} }
 func InvoiceURL(id string) string { return "/app/invoices/"+id }
 
+templ Login(csrf,message string) {
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Connexion · PanlyackERP</title><link rel="stylesheet" href="/static/app.css"/></head>
+<body class="auth-page"><main class="auth-shell"><section class="auth-form-side"><div class="auth-form-inner"><div class="auth-brand"><span class="brand-mark" aria-hidden="true">P</span><span>PanlyackERP</span></div><h1>Retrouvez vos opérations.</h1><p class="muted">Connectez-vous à l’espace de travail de Panlyack Trading.</p>
+if message!="" {
+<div class="notice error" role="alert">{ message }</div>
+}
+<form method="post" action="/login"><input type="hidden" name="csrf" value={ csrf }/><label for="email">Adresse e-mail</label><input id="email" name="email" type="email" autocomplete="username" required maxlength="254"/><label for="password">Mot de passe</label><input id="password" name="password" type="password" autocomplete="current-password" required minlength="12" maxlength="128"/><button type="submit">Se connecter</button></form><p class="auth-help">Accès créé localement par l’administrateur du projet.</p></div></section>
+<aside class="auth-story"><div class="auth-story-inner"><div class="auth-story-mark" aria-hidden="true">P</div><h2>Du document aux comptes, sans perdre le fil.</h2><p>Importez une facture, vérifiez les données, puis consultez ses effets sur le stock, le journal et la trésorerie.</p><div class="auth-steps"><span>Importer</span><span>Vérifier</span><span>Comptabiliser</span></div><span class="auth-footnote">PanlyackERP · Espace de démonstration local</span></div></aside></main></body></html>
+}
+
+templ Logout(csrf string) {
+<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Déconnexion · PanlyackERP</title><link rel="stylesheet" href="/static/app.css"/></head><body class="auth-page"><main class="logout-card"><h1>Quitter l’espace de travail ?</h1><p class="muted">Votre session sera fermée sur ce navigateur.</p><form method="post" action="/logout"><input type="hidden" name="csrf" value={ csrf }/><button type="submit">Se déconnecter</button><a class="secondary button" href="/app/dashboard">Retour au tableau de bord</a></form></main></body></html>
+}
+
 templ Layout(title,active string) {
  <!DOCTYPE html>
  <html lang="fr"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>{ title } · PanlyackERP</title><link rel="stylesheet" href="/static/app.css"/><script src="/static/htmx.min.js" defer></script><meta name="htmx-config" content="{&quot;allowEval&quot;:false,&quot;allowScriptTags&quot;:false}"/></head>
  <body><a class="skip" href="#main">Aller au contenu</a><div class="shell">
- <aside class="sidebar"><a class="brand" href="/app/dashboard">PanlyackERP</a><nav aria-label="Navigation principale">
+ <aside class="sidebar"><a class="brand" href="/app/dashboard"><span class="brand-mark" aria-hidden="true">P</span><span>Panlyack<span class="brand-light">ERP</span></span></a><nav aria-label="Navigation principale">
  for _,item:=range []struct{Path,Label string}{{"dashboard","Vue d’ensemble"},{"invoices","Factures"},{"inventory","Stock"},{"accounting","Comptabilité"},{"cash","Trésorerie"}} {
   <a href={ templ.SafeURL("/app/"+item.Path) } aria-current={ activePage(active,item.Path) }>{ item.Label }</a>
  }
- </nav><div class="workspace">Panlyack Trading<br/>Espace de démonstration local</div></aside>
- <div><header class="topbar"><span>Panlyack Trading</span><span class="muted">USD · PCG · FIFO</span></header><main id="main" class="content">{ children... }</main></div>
+ </nav><div class="workspace"><span class="workspace-name">Panlyack Trading</span><span>Édition locale · démonstration</span></div></aside>
+ <div class="main-column"><header class="topbar"><span class="organization-name">Panlyack Trading</span><span class="topbar-right"><span class="org-meta">USD <span aria-hidden="true">·</span> PCG <span aria-hidden="true">·</span> FIFO</span><a class="logout-link" href="/logout">Déconnexion</a></span></header><main id="main" class="content">{ children... }</main></div>
  </div></body></html>
 }
 
@@ -34,7 +49,7 @@ templ Heading(title,description string) {
 
 templ KPI(s reporting.Summary) {
  <dl class="metrics" id="kpis" hx-get="/app/_partials/dashboard/kpis" hx-trigger="every 30s" hx-swap="outerHTML">
- for _,m:=range []struct{Label,Value string}{{"Chiffre d’affaires",s.Revenue},{"Trésorerie disponible",s.Cash},{"Valeur du stock",s.Inventory},{"Dettes fournisseurs",s.Payables}} {
+ for _,m:=range []struct{Label,Value string}{{"Trésorerie disponible",s.Cash},{"Valeur du stock",s.Inventory},{"Chiffre d’affaires",s.Revenue},{"Dettes fournisseurs",s.Payables}} {
  <div class="metric"><dt>{ m.Label }</dt><dd>{ Money(m.Value) } <small class="muted text-xs">USD</small></dd></div>
  }
  </dl>
@@ -46,7 +61,7 @@ templ Dashboard(s reporting.Summary,invoices []documents.Invoice) {
 <a class="button" href="/app/invoices/new">Importer une facture</a>
 }
  @KPI(s)
- <div class="panel"><div class="panel-body"><h2>Situation de l’activité</h2><div class="form-grid"><p>Achats : <strong>{ Money(s.Purchases) } USD</strong></p><p>Créances clients : <strong>{ Money(s.Receivables) } USD</strong></p><p>Coût des ventes : <strong>{ Money(s.Cost) } USD</strong></p><p>Factures comptabilisées : <strong>{ strconv.Itoa(s.Count) }</strong></p></div></div></div>
+ <div class="panel activity-panel"><div class="panel-body"><h2>Situation de l’activité</h2><dl class="activity-list"><div><dt>Achats</dt><dd>{ Money(s.Purchases) } USD</dd></div><div><dt>Créances clients</dt><dd>{ Money(s.Receivables) } USD</dd></div><div><dt>Coût des ventes</dt><dd>{ Money(s.Cost) } USD</dd></div><div><dt>Factures comptabilisées</dt><dd>{ strconv.Itoa(s.Count) }</dd></div></dl></div></div>
  @InvoiceTable(invoices)
  }
 }
@@ -59,7 +74,7 @@ templ InvoiceTable(invoices []documents.Invoice) {
 
  <div class="table-scroll"><table><caption>Factures récentes</caption><thead><tr><th>Référence</th><th>Partenaire</th><th>Date</th><th>Statut</th><th class="amount">Montant</th></tr></thead><tbody>
  for _,i:=range invoices {
-<tr><td><a href={ templ.SafeURL(InvoiceURL(i.ID)) }>{ i.Number }</a></td><td>{ i.Partner }</td><td>{ i.IssueDate }</td><td><span class="badge">{ Status(i.Status) }</span></td><td class="amount">{ Money(i.Total) } { i.Currency }</td></tr>
+<tr><td><a href={ templ.SafeURL(InvoiceURL(i.ID)) }>{ i.Number }</a></td><td>{ i.Partner }</td><td>{ i.IssueDate }</td><td><span class={ statusClass(i.Status) }>{ Status(i.Status) }</span></td><td class="amount">{ Money(i.Total) } { i.Currency }</td></tr>
 }
  </tbody></table></div>
  }
@@ -78,7 +93,7 @@ templ Upload(csrf,message string) {
  @Layout("Importer une facture","invoices") {
 @Heading("Importer une facture","Ajoutez une photo nette ou un PDF. Vous vérifierez les données avant toute opération.") {
 }
- <div class="panel"><div class="panel-body">
+ <div class="panel upload-panel"><div class="panel-body">
  if message!="" {
 <div class="notice error" role="alert">{ message }</div>
 }
@@ -92,32 +107,38 @@ templ Upload(csrf,message string) {
 templ Review(i documents.Invoice,csrf,message string) {
  @Layout("Vérifier la facture","invoices") {
  @Heading(i.Number,"Vérifiez le document et les données avant de comptabiliser.") {
-<span class="badge">{ Status(i.Status) }</span>
+<span class={ statusClass(i.Status) }>{ Status(i.Status) }</span>
 }
  if message!="" {
 <div class="notice error" role="alert">{ message }</div>
 }
  if i.ExtractionMode=="demo" {
-<div class="notice">Mode démonstration : les 14 lignes ci-dessous sont simulées. Elles ne sont pas extraites de votre fichier.</div>
+<div class="notice">Mode démonstration : les données ci-dessous sont simulées. Elles ne sont pas extraites de votre fichier.</div>
 }
+ if i.ExtractionMode!="demo" {
  for _, warning := range i.Warnings {
 <div class="notice">{ warning }</div>
+}
 }
  if i.Status=="POSTED" {
 <div class="notice" role="status">Facture comptabilisée. Stock, journal, trésorerie et tableau de bord ont été mis à jour. Ce document est désormais en lecture seule.</div>
 }
- <div class="review-grid"><section class="panel"><div class="panel-body"><h2>Document d’origine</h2><a href={ templ.SafeURL(InvoiceURL(i.ID)+"/document") } target="_blank" rel="noopener">Ouvrir le document</a><p class="muted">Confiance indiquée : { i.Confidence }</p></div><iframe class="preview" title="Document d’origine" src={ templ.SafeURL(InvoiceURL(i.ID)+"/document") }></iframe></section>
- <section class="panel"><div class="panel-body"><h2>Données de la facture</h2>
+ <div class="review-grid"><section class="panel document-panel"><div class="panel-body"><h2>Document d’origine</h2><a href={ templ.SafeURL(InvoiceURL(i.ID)+"/document") } target="_blank" rel="noopener">Ouvrir le document</a>
+ if i.ExtractionMode!="demo" {
+<p class="muted">Confiance indiquée : { i.Confidence }</p>
+}
+ </div><iframe class="preview" title="Document d’origine" src={ templ.SafeURL(InvoiceURL(i.ID)+"/document") }></iframe></section>
+ <section class="panel review-panel"><div class="panel-body"><h2>Données de la facture</h2>
  <form method="post" action={ templ.SafeURL(InvoiceURL(i.ID)+"/review") }>
  <input type="hidden" name="csrf" value={ csrf }/><input type="hidden" name="version" value={ strconv.Itoa(i.Version) }/>
- <fieldset disabled?={ i.Status!="NEEDS_REVIEW" }><div class="form-grid">
+ <fieldset disabled?={ i.Status!="NEEDS_REVIEW" }><h3 class="section-title">Informations générales</h3><div class="form-grid">
  <div><label for="number">Référence</label><input id="number" name="number" value={ i.Number } required maxlength="100"/></div>
  <div><label for="partner">Fournisseur / client</label><input id="partner" name="partner" value={ i.Partner } required maxlength="200"/></div>
  <div><label for="date">Date</label><input id="date" name="issue_date" type="date" value={ i.IssueDate } required/></div>
  <div><label for="direction">Opération</label><select id="direction" name="direction"><option value="PURCHASE" selected?={ i.Direction=="PURCHASE" }>Achat</option><option value="SALE" selected?={ i.Direction=="SALE" }>Vente</option></select></div>
  <div><label for="currency">Devise</label><select id="currency" name="currency"><option value="USD">USD</option></select></div>
  <div><label for="total">Total, taxes incluses</label><input id="total" name="total" inputmode="decimal" value={ i.Total } required/></div>
- </div><p class="muted mt-6">Les SKU identiques désignent le même produit. Un nouveau SKU crée un produit à la comptabilisation d’un achat.</p>
+ </div><div class="section-heading"><h3 class="section-title">Lignes de facture</h3><p class="muted">Les SKU identiques désignent le même produit. Un nouveau SKU crée un produit à la comptabilisation d’un achat.</p></div>
  <div class="table-scroll"><table class="line-table"><thead><tr><th>SKU</th><th>Produit</th><th>Unité</th><th>Quantité</th><th>Prix unitaire</th><th>Taxe %</th><th>Action</th></tr></thead><tbody>
  for n,l:=range i.Lines {
 <tr>
@@ -134,7 +155,7 @@ templ Review(i documents.Invoice,csrf,message string) {
  if i.Status=="NEEDS_REVIEW" && len(i.Lines)<100 {
 <button class="secondary" name="action" value="add_line" formnovalidate>Ajouter une ligne</button>
 }
- <h2 class="mt-7">Règlement</h2><p class="muted">Le solde non réglé devient une dette fournisseur ou une créance client.</p><div class="form-grid">
+ <div class="section-heading"><h3 class="section-title">Règlement</h3><p class="muted">Le solde non réglé devient une dette fournisseur ou une créance client.</p></div><div class="form-grid">
  for _,method:=range []string{"CASH","BANK","MOBILE_MONEY","CARD"} {
 <div><label for={ method }>{ paymentLabel(method) }</label><input id={ method } name={ "payment_"+method } value={ paymentAmount(i,method) } inputmode="decimal"/></div>
 }
@@ -155,6 +176,7 @@ templ Review(i documents.Invoice,csrf,message string) {
 
 func paymentLabel(method string) string { return map[string]string{"CASH":"Espèces","BANK":"Banque","MOBILE_MONEY":"Mobile money","CARD":"Carte"}[method] }
 func paymentAmount(i documents.Invoice,method string)string { for _,p:=range i.Payments {if p.Method==method{return p.Amount}};return "0" }
+func statusClass(status string) string { if status=="NEEDS_REVIEW" { return "badge review" }; if status=="CONFIRMED" { return "badge confirmed" }; return "badge" }
 
 templ Inventory(products []inventory.Product) {
 @Layout("Stock","inventory") {

@@ -4,7 +4,7 @@ A local ERP MVP that turns a reviewed invoice into inventory, journal and cash o
 
 Go + Chi · templ + HTMX + Tailwind · PostgreSQL · FastAPI
 
-**Status:** the complete purchase invoice demo flow runs. This is a local, single-organization MVP, not a production SaaS release. The broader blueprint includes capabilities still outside this delivery; see [implementation status](docs/implementation-status.md).
+**Status:** the complete purchase invoice demo flow runs behind a local owner login. This is a single-organization MVP, not a production SaaS release. The broader blueprint includes capabilities still outside this delivery; see [implementation status](docs/implementation-status.md).
 
 ## Quick start with Docker
 
@@ -16,7 +16,13 @@ Go + Chi · templ + HTMX + Tailwind · PostgreSQL · FastAPI
 docker compose --env-file .env -f deployments/compose.yaml up --build -d
 ```
 
-Open http://127.0.0.1:8080/app/dashboard. The ERP container applies Goose migrations before starting. PostgreSQL and documents use named volumes. Ports bind to loopback only.
+Create the first owner account from PowerShell, then open http://127.0.0.1:8080/login:
+
+```powershell
+./scripts/create-owner-docker.ps1
+```
+
+The script prompts for a password. The ERP container applies Goose migrations before starting. PostgreSQL and documents use named volumes. Ports bind to loopback only.
 
 ## Local Windows development
 
@@ -27,9 +33,10 @@ docker compose --env-file .env -f deployments/compose.yaml up -d postgres
 python -m venv .venv
 .venv/Scripts/python -m pip install -e './ai-service[test]'
 ./scripts/start-local.ps1
+./scripts/create-owner.ps1
 ```
 
-The script loads `.env`, applies migrations, builds Go, and starts Go/FastAPI in hidden background processes. It writes process IDs and logs under `var/`. Stop them with `./scripts/stop-local.ps1`.
+The start script loads `.env`, applies migrations, builds Go, and starts Go/FastAPI in hidden background processes. It writes process IDs and logs under `var/`. The owner script prompts for an email/password and can be rerun to rotate the password and revoke old sessions. Open http://127.0.0.1:8080/login. Stop the local services with `./scripts/stop-local.ps1`.
 
 For a foreground Go development process after starting the AI service, use `./scripts/dev.ps1`.
 
@@ -100,7 +107,8 @@ graphify-out/             generated architecture graph, with coverage caveats
 
 ## Important boundaries
 
-- Organization scope is explicit in business queries. The local UI always uses the seeded organization; authentication and memberships are not implemented.
+- Organization scope is explicit in business queries. The local UI currently uses one seeded organization and one owner role.
+- The owner account belongs to the seeded organization. Private pages and the dashboard API require a server-side session. Passwords are hashed with Argon2id and session tokens are stored as hashes. This local release still refuses production mode; multi-user roles, password recovery and HTTPS deployment are pending.
 - Production mode refuses startup. Do not expose these local-demo ports through a tunnel or a public reverse proxy.
 - Financial amounts use decimal strings and `shopspring/decimal`; quantities have six decimal places, money four. UI amounts display two places; stored amounts retain four.
 - The seeded fiscal year is 2026. Missing or closed fiscal periods reject posting.

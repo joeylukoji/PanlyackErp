@@ -70,6 +70,30 @@ func TestPostgresPostingAtomicAndIdempotent(t *testing.T) {
 	reports := reporting.Repository{DB: store}
 	service := invoiceposting.Service{UOW: store, Documents: docs, Identity: identity.Repository{DB: store}, Inventory: inventoryapp.Service{Repository: inv}, Accounting: account.Repository{DB: store}, Cash: cash.Repository{DB: store}, Reporting: reports, Audit: audit.Log{DB: store}}
 	org := "11111111-1111-4111-8111-111111111111"
+	auth := identity.AuthRepository{DB: store}
+	if err := auth.SetOwner(ctx, org, "OWNER@PANLYACK.LOCAL", "correct horse battery staple"); err != nil {
+		t.Fatal(err)
+	}
+	owner, err := auth.Authenticate(ctx, org, "owner@panlyack.local", "correct horse battery staple")
+	if err != nil || owner.OrganizationID != org || owner.Role != "OWNER" {
+		t.Fatalf("owner login: %v", err)
+	}
+	if _, err := auth.Authenticate(ctx, org, owner.Email, "incorrect password"); err == nil {
+		t.Fatal("invalid password accepted")
+	}
+	token, err := auth.CreateSession(ctx, owner)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if loaded, err := auth.Session(ctx, token); err != nil || loaded.UserID != owner.UserID {
+		t.Fatalf("session lookup: %v", err)
+	}
+	if err := auth.RevokeSession(ctx, token); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := auth.Session(ctx, token); err == nil {
+		t.Fatal("revoked session still valid")
+	}
 	invoice := doc.Invoice{ID: uuid.NewString(), OrganizationID: org, DocumentID: uuid.NewString(), Status: "CONFIRMED", Version: 1, Number: "TEST-53740", Partner: "Supplier", IssueDate: "2026-10-13", Currency: "USD", Direction: "PURCHASE", Total: "537.40", Lines: []doc.Line{}, Payments: []doc.Payment{{Method: "CASH", Amount: "537.40"}}}
 	for n := range 14 {
 		price := "3.8"

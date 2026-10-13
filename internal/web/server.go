@@ -21,6 +21,7 @@ import (
 	docstore "panlyackerp/internal/modules/documents/adapters/postgres"
 	docapp "panlyackerp/internal/modules/documents/application"
 	documents "panlyackerp/internal/modules/documents/domain"
+	identity "panlyackerp/internal/modules/identity/ports"
 	inventory "panlyackerp/internal/modules/inventory/adapters/postgres"
 	reporting "panlyackerp/internal/modules/reporting/adapters/postgres"
 	"panlyackerp/internal/platform/config"
@@ -45,6 +46,7 @@ type Server struct {
 	Accounting      accounting.Repository
 	Cash            cash.Repository
 	Reporting       reporting.Repository
+	Auth            identity.Auth
 }
 
 func (s *Server) Router() http.Handler {
@@ -62,30 +64,37 @@ func (s *Server) Router() http.Handler {
 	})
 	static, _ := fs.Sub(assets.Assets, "static")
 	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.FS(static))))
+	r.Get("/login", s.loginPage)
+	r.Post("/login", s.login)
+	r.Post("/logout", s.logout)
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/app/dashboard", http.StatusSeeOther)
 	})
-	r.Get("/app/dashboard", s.dashboard)
-	r.Get("/app/_partials/dashboard/kpis", s.kpis)
-	r.Get("/app/invoices", s.invoices)
-	r.Get("/app/invoices/new", func(w http.ResponseWriter, r *http.Request) { s.render(w, r, pages.Upload(csrf(r), "")) })
-	r.Post("/app/invoices/upload", s.upload)
-	r.Get("/app/invoices/{id}", s.review)
-	r.Get("/app/invoices/{id}/document", s.document)
-	r.Post("/app/invoices/{id}/review", s.saveReview)
-	r.Post("/app/invoices/{id}/post", s.post)
-	r.Post("/app/invoices/{id}/reopen", s.reopen)
-	r.Get("/app/inventory", s.inventory)
-	r.Get("/app/accounting", s.accounting)
-	r.Get("/app/cash", s.cash)
-	r.Get("/api/v1/dashboard", func(w http.ResponseWriter, r *http.Request) {
-		data, err := s.Reporting.Summary(r.Context(), DemoOrganization)
-		if err != nil {
-			s.fail(w, r, err)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(data)
+	r.Group(func(r chi.Router) {
+		r.Use(s.requireSession)
+		r.Get("/app/dashboard", s.dashboard)
+		r.Get("/logout", s.logoutPage)
+		r.Get("/app/_partials/dashboard/kpis", s.kpis)
+		r.Get("/app/invoices", s.invoices)
+		r.Get("/app/invoices/new", func(w http.ResponseWriter, r *http.Request) { s.render(w, r, pages.Upload(csrf(r), "")) })
+		r.Post("/app/invoices/upload", s.upload)
+		r.Get("/app/invoices/{id}", s.review)
+		r.Get("/app/invoices/{id}/document", s.document)
+		r.Post("/app/invoices/{id}/review", s.saveReview)
+		r.Post("/app/invoices/{id}/post", s.post)
+		r.Post("/app/invoices/{id}/reopen", s.reopen)
+		r.Get("/app/inventory", s.inventory)
+		r.Get("/app/accounting", s.accounting)
+		r.Get("/app/cash", s.cash)
+		r.Get("/api/v1/dashboard", func(w http.ResponseWriter, r *http.Request) {
+			data, err := s.Reporting.Summary(r.Context(), DemoOrganization)
+			if err != nil {
+				s.fail(w, r, err)
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(data)
+		})
 	})
 	return r
 }
@@ -215,7 +224,7 @@ func (s *Server) upload(w http.ResponseWriter, r *http.Request) {
 		s.render(w, r, pages.Upload(csrf(r), "Format non autorisé. Utilisez PNG, JPEG ou PDF."))
 		return
 	}
-	id, err := s.DocumentService.Upload(r.Context(), DemoOrganization, "local-demo", data, mime)
+	id, err := s.DocumentService.Upload(r.Context(), DemoOrganization, actor(r), data, mime)
 	if err != nil {
 		s.Logger.Error("upload failed", "error", err)
 		s.render(w, r, pages.Upload(csrf(r), "L’extraction a échoué. Vérifiez que le service IA est disponible, puis réessayez."))
@@ -282,7 +291,7 @@ func (s *Server) saveReview(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	err = s.DocumentService.Review(r.Context(), DemoOrganization, "local-demo", edited, r.FormValue("action") == "confirm")
+	err = s.DocumentService.Review(r.Context(), DemoOrganization, actor(r), edited, r.FormValue("action") == "confirm")
 	if err != nil {
 		s.render(w, r, pages.Review(edited, csrf(r), safeMessage(err)))
 		return
@@ -296,7 +305,7 @@ func (s *Server) post(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	if err := s.Posting.Post(r.Context(), DemoOrganization, id, "local-demo"); err != nil {
+	if err := s.Posting.Post(r.Context(), DemoOrganization, id, actor(r)); err != nil {
 		i, loadErr := s.Documents.Get(r.Context(), DemoOrganization, id, false)
 		if loadErr != nil {
 			s.fail(w, r, loadErr)
@@ -314,7 +323,7 @@ func (s *Server) reopen(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	if err := s.DocumentService.Reopen(r.Context(), DemoOrganization, id, "local-demo"); err != nil {
+	if err := s.DocumentService.Reopen(r.Context(), DemoOrganization, id, actor(r)); err != nil {
 		s.fail(w, r, err)
 		return
 	}

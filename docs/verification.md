@@ -17,12 +17,13 @@ Environment: Windows, Go 1.26.4, Python 3.13.5, PostgreSQL 17 in Docker. Contain
 - Tailwind production CSS build and sqlc organization query generation.
 - Impeccable mechanical detector: no findings.
 - Windows startup applies migrations, builds both-service launch configuration and checks readiness; stop removes the owned Python child process and Go process. Restart preserves the posted invoice and dashboard balances.
-
 - Browser line editing: add a fifteenth line, remove it, save the 14-line draft successfully; no financial effect until posting.
+- Owner authentication: Argon2id hash verification, organization membership, server-side session creation and revocation, rejected password and private-route redirect. Tested in isolated PostgreSQL integration and a local HTTP smoke flow.
+- Updated desktop and mobile screens: login, dashboard and invoice review inspected at 1440px and 390px, with no document-wide horizontal overflow.
 
 ## Limits
 - Real Ollama model extraction not exercised; adapter must be tested with the chosen installed model.
 - Full Docker image build, Go 1.27 runtime, race detector and dependency vulnerability audit are not yet verified.
 - Graphify output covers an earlier implementation snapshot. Its health report retains dangling references and collapsed edges; use it for navigation, not proof of correctness or completeness.
-- This is a local demo with no production authentication.
+- This is a local demo with an owner login, not production-ready authentication. Rate limits, multi-user roles, password recovery and HTTPS deployment remain pending.
 - Python tests pass with one upstream Starlette TestClient deprecation warning about httpx.

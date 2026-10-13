@@ -7,5 +7,6 @@
 - [x] UI: dashboard, review, inventory, journal, cash and actionable errors.
 - [x] Verification: tests, vet, empty-database migration, browser purchase flow and documentation.
 - [ ] Exercise extraction with an installed vision model and implement PDF rasterization.
-- [ ] Production authentication, authorization and operational hardening.
+- [x] Local owner login, membership check, session revocation and protected pages.
+- [ ] Production multi-user identity, authorization and operational hardening.
 - [ ] Finish broader blueprint capabilities listed in docs/implementation-status.md.

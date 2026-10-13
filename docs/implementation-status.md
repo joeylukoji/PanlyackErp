@@ -13,9 +13,10 @@
 - Atomic posting, concurrent retry idempotency, audit, outbox record and synchronous reporting projection.
 - Dashboard, invoices, inventory, journal and cash screens; responsive layouts; CSRF and local-host gate.
 - Generated sqlc organization query. Other module SQL currently remains explicit parameterized pgx in module-owned adapters.
+- Local owner login, Argon2id password hashing, organization membership check, expiring server-side sessions and revocation on logout or password rotation.
 
 ## Blueprint work still pending
-- Production identity, Argon2id login, organization memberships, authorization and deployment hardening.
+- Production identity: multi-user roles, invitations, password recovery, rate limits, HTTPS cookies and deployment hardening.
 - Real vision model runtime verification; PDF rasterization/OCR; field-level extraction confidence UX; extraction retry queue.
 - Independent product/category/warehouse CRUD, manual inventory adjustments, returns and losses.
 - User-configurable organization/valuation policy and US chart of accounts; fiscal-year management UI.
