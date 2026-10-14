@@ -47,6 +47,7 @@ For a foreground Go development process after starting the AI service, use `./sc
 3. Correct the supplier, quantities, prices, taxes or payment amounts. Add/remove lines when needed. The total must equal the exact sum of lines and tax.
 4. Choose **Confirmer les données**, then **Comptabiliser la facture**.
 5. Open stock, accounting, cash and dashboard screens. A newly registered workspace starts with 5,000 USD cash and no stock; after posting it has **4,462.60 USD cash** and **537.40 USD stock**. The pre-seeded Panlyack Trading workspace includes 2,000 USD opening stock and therefore reaches **2,537.40 USD stock**.
+   The accounting screen also shows a trial balance. Select an account code to see its latest 400 ledger lines; the debit and credit balance totals should match.
 6. To test a later payment, set the invoice's initial **Espèces** amount to `0` before confirmation. After posting, open the invoice, choose an amount and a payment method under **Solde de la facture**, then record it. The remaining payable or receivable, journal and cash balances update together.
 
 Repeated posting of the same invoice returns success without duplicate effects. Re-uploading a file creates another draft: file hashes are retained for traceability, not used as business-level duplicate invoice detection.
