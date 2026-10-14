@@ -60,6 +60,6 @@ async def extract(request: ExtractionRequest, extractor: Annotated[Extractor, De
         try:
             return await extractor.extract(request)
         except ValueError as exc:
-            raise HTTPException(422, "Document could not be extracted; use PNG or JPEG and retry") from exc
+            raise HTTPException(422, "Document could not be extracted; check the file and limit PDFs to 5 pages") from exc
         except (httpx.HTTPError, KeyError) as exc:
             raise HTTPException(502, "Model service failed; no data has been posted") from exc

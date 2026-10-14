@@ -6,7 +6,8 @@
 - [x] Extraction: bounded uploads, local storage, FastAPI schemas, explicit demo and configurable real adapter.
 - [x] UI: dashboard, review, inventory, journal, cash and actionable errors.
 - [x] Verification: tests, vet, empty-database migration, browser purchase flow and documentation.
-- [ ] Exercise extraction with an installed vision model and implement PDF rasterization.
+- [x] Rasterize bounded PDFs for the vision adapter; test multi-page images with a mock model.
+- [ ] Exercise extraction with an installed vision model.
 - [x] Local owner login, membership check, session revocation and protected pages.
 - [ ] Production multi-user identity, authorization and operational hardening.
 - [ ] Finish broader blueprint capabilities listed in docs/implementation-status.md.

@@ -4,7 +4,7 @@
 - Local Go app, PostgreSQL, migrations, FastAPI, health endpoints, timeouts, logs and shutdown.
 - Seeded USD organization, FR PCG policy, FIFO and opening balances with balanced opening journal.
 - File type/size checks, generated storage keys, SHA-256, image/PDF preview.
-- Explicit demo extraction; separately configurable Ollama vision adapter.
+- Explicit demo extraction; separately configurable Ollama vision adapter with 1–5 page PDF rasterization.
 - Editable invoice header, lines, taxes and split payment amounts; exact total validation.
 - Human confirmation; explicit reopen transition; immutable posted state.
 - Purchase receipt, sale issue, FIFO and AVCO cost allocation; product matching by confirmed SKU.
@@ -17,7 +17,7 @@
 
 ## Blueprint work still pending
 - Production identity: multi-user roles, invitations, password recovery, rate limits, HTTPS cookies and deployment hardening.
-- Real vision model runtime verification; PDF rasterization/OCR; field-level extraction confidence UX; extraction retry queue.
+- Real vision model runtime verification; OCR quality assessment, field-level extraction confidence UX and extraction retry queue.
 - Independent product/category/warehouse CRUD, manual inventory adjustments, returns and losses.
 - User-configurable organization/valuation policy and US chart of accounts; fiscal-year management UI.
 - Standalone customer/supplier payments after posting, bank reconciliation, general expenses.

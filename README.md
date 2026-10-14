@@ -43,7 +43,7 @@ For a foreground Go development process after starting the AI service, use `./sc
 ## Try the complete flow
 
 1. Import `fixtures/invoice-53740.png` from **Factures → Importer une facture**.
-2. The default `EXTRACTOR_MODE=demo` returns a clearly labeled fixed 14-line invoice. It does **not** inspect the uploaded image.
+2. The default `EXTRACTOR_MODE=demo` returns a clearly labeled fixed 14-line invoice. It does **not** inspect the uploaded document.
 3. Correct the supplier, quantities, prices, taxes or payment amounts. Add/remove lines when needed. The total must equal the exact sum of lines and tax.
 4. Choose **Confirmer les données**, then **Comptabiliser la facture**.
 5. Open stock, accounting, cash and dashboard screens. Starting cash 5,000 USD and stock 2,000 USD become **4,462.60 USD** and **2,537.40 USD**.
@@ -62,9 +62,9 @@ MODEL_BASE_URL=http://127.0.0.1:11434
 MODEL_NAME=gemma3:4b
 ```
 
-Install and serve a vision-capable model separately, then restart FastAPI. In Compose use `http://host.docker.internal:11434` for a host model server. This adapter accepts PNG/JPEG; PDF-to-image conversion is not implemented. Model responses are validated by Pydantic and financial values are validated again in Go. Extraction failures never silently fall back to demo data.
+Install and serve a vision-capable model separately, then restart FastAPI. In Compose use `http://host.docker.internal:11434` for a host model server. This adapter accepts PNG/JPEG and renders PDFs of 1–5 pages as bounded PNG images before sending them to the model. Model responses are validated by Pydantic and financial values are validated again in Go. Extraction failures never silently fall back to demo data.
 
-**Real model extraction has not been verified against a running model in this workspace.** No model weights were downloaded and no invoice was sent to a third-party model provider.
+**Real model extraction has not been verified against a running model in this workspace.** The PDF rendering path was tested with a mock model response. No model weights were downloaded and no invoice was sent to a third-party model provider.
 
 ## Tests and generation
 
