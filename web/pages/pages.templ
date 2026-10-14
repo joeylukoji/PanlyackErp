@@ -34,12 +34,12 @@ templ Layout(title,active string) {
  <!DOCTYPE html>
  <html lang="fr"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>{ title } · PanlyackERP</title><link rel="stylesheet" href="/static/app.css"/><script src="/static/htmx.min.js" defer></script><meta name="htmx-config" content="{&quot;allowEval&quot;:false,&quot;allowScriptTags&quot;:false}"/></head>
  <body><a class="skip" href="#main">Aller au contenu</a><div class="shell"><input class="nav-toggle" id="nav-toggle" type="checkbox" aria-label="Afficher le menu de navigation"/><label class="nav-scrim" for="nav-toggle" aria-hidden="true"></label>
- <aside class="sidebar"><div class="sidebar-top"><a class="brand" href="/app/dashboard"><span class="brand-mark" aria-hidden="true">P</span><span>Panlyack<span class="brand-light">ERP</span></span></a><label class="menu-trigger" for="nav-toggle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg><span>Menu</span></label></div><nav aria-label="Navigation principale"><div class="drawer-heading"><span>Navigation</span><label class="nav-close" for="nav-toggle" aria-label="Fermer le menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M5 5l14 14M19 5 5 19"/></svg></label></div>
+ <aside class="sidebar"><div class="sidebar-top"><a class="brand" href="/app/dashboard"><span class="brand-mark" aria-hidden="true">P</span><span>Panlyack<span class="brand-light">ERP</span></span></a><label class="menu-trigger" for="nav-toggle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg><span>Menu</span></label></div><nav aria-label="Navigation principale"><div class="drawer-heading"><span>Navigation</span><label class="nav-close" for="nav-toggle" aria-label="Fermer le menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M5 5l14 14M19 5 5 19"/></svg></label></div><p class="nav-label">Espace de travail</p>
  for _,item:=range []struct{Path,Label string}{{"dashboard","Vue d’ensemble"},{"invoices","Factures"},{"inventory","Stock"},{"accounting","Comptabilité"},{"cash","Trésorerie"}} {
   <a href={ templ.SafeURL("/app/"+item.Path) } aria-current={ activePage(active,item.Path) }><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href={ templ.SafeURL("/static/nav-icons.svg#"+item.Path) }></use></svg><span>{ item.Label }</span></a>
  }
- </nav><div class="workspace"><span class="workspace-name">Panlyack Trading</span><span>Édition locale · démonstration</span></div></aside>
- <div class="main-column"><header class="topbar"><span class="organization-name">Panlyack Trading</span><span class="topbar-right"><span class="org-meta">USD <span aria-hidden="true">·</span> PCG <span aria-hidden="true">·</span> FIFO</span><a class="logout-link" href="/logout">Déconnexion</a></span></header><main id="main" class="content">{ children... }</main></div>
+ </nav><div class="workspace"><span class="workspace-avatar" aria-hidden="true">PT</span><span class="workspace-copy"><span class="workspace-name">Panlyack Trading</span><span>Édition locale · démonstration</span></span></div></aside>
+ <div class="main-column"><header class="topbar"><span class="organization-name">{ title }</span><span class="topbar-right"><span class="org-meta">Panlyack Trading <span aria-hidden="true">·</span> USD</span><a class="logout-link" href="/logout">Déconnexion</a></span></header><main id="main" class="content">{ children... }</main></div>
  </div></body></html>
 }
 
@@ -49,18 +49,26 @@ templ Heading(title,description string) {
 
 templ KPI(s reporting.Summary) {
  <dl class="metrics" id="kpis" hx-get="/app/_partials/dashboard/kpis" hx-trigger="every 30s" hx-swap="outerHTML">
- for _,m:=range []struct{Label,Value string}{{"Trésorerie disponible",s.Cash},{"Valeur du stock",s.Inventory},{"Chiffre d’affaires",s.Revenue},{"Dettes fournisseurs",s.Payables}} {
- <div class="metric"><dt>{ m.Label }</dt><dd>{ Money(m.Value) } <small class="muted text-xs">USD</small></dd></div>
+ for _,m:=range []struct{Label,Value,Icon,Color string}{{"Chiffre d’affaires",s.Revenue,"accounting","blue"},{"Factures comptabilisées",strconv.Itoa(s.Count),"invoices","purple"},{"Valeur du stock",s.Inventory,"inventory","amber"},{"Trésorerie disponible",s.Cash,"cash","green"}} {
+ <div class="metric"><div class={ "metric-icon "+m.Color }><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href={ templ.SafeURL("/static/nav-icons.svg#"+m.Icon) }></use></svg></div><dt>{ m.Label }</dt><dd>
+ if m.Icon=="invoices" {
+ { m.Value }
+ } else {
+ { Money(m.Value) } <small>USD</small>
+ }
+ </dd></div>
  }
  </dl>
 }
 
 templ Dashboard(s reporting.Summary,invoices []documents.Invoice) {
  @Layout("Vue d’ensemble","dashboard") {
- <section class="dashboard-hero"><img src="/static/dashboard-workspace.jpg" alt=""/><div class="dashboard-hero-content"><h1>Vos opérations, reliées à leurs documents.</h1><p>Du document vérifié au stock, aux comptes et à la trésorerie.</p><a class="button hero-action" href="/app/invoices/new">Importer une facture <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></a></div></section>
+ <div class="dashboard-heading"><div><h1>Vue d’ensemble</h1><p>Vos documents et leurs effets sur l’activité, en un coup d’œil.</p></div><a class="button dashboard-primary" href="/app/invoices/new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Importer une facture</a></div>
+ <nav class="dashboard-actions" aria-label="Accès rapides"><a href="/app/invoices">Toutes les factures</a><a href="/app/inventory">Consulter le stock</a><a href="/app/accounting">Journal comptable</a><a href="/app/cash">Trésorerie</a></nav>
  @KPI(s)
- <div class="panel activity-panel"><div class="panel-body"><h2>Situation de l’activité</h2><dl class="activity-list"><div><dt>Achats</dt><dd>{ Money(s.Purchases) } USD</dd></div><div><dt>Créances clients</dt><dd>{ Money(s.Receivables) } USD</dd></div><div><dt>Coût des ventes</dt><dd>{ Money(s.Cost) } USD</dd></div><div><dt>Factures comptabilisées</dt><dd>{ strconv.Itoa(s.Count) }</dd></div></dl></div></div>
- @InvoiceTable(invoices)
+ <div class="dashboard-overview"><section class="panel activity-panel"><div class="panel-body"><div class="dashboard-section-heading"><div><h2>Situation de l’activité</h2><p>Soldes issus des factures comptabilisées</p></div><a href="/app/accounting">Voir le journal</a></div><dl class="activity-list"><div><dt>Achats</dt><dd>{ Money(s.Purchases) } USD</dd></div><div><dt>Créances clients</dt><dd>{ Money(s.Receivables) } USD</dd></div><div><dt>Coût des ventes</dt><dd>{ Money(s.Cost) } USD</dd></div><div><dt>Dettes fournisseurs</dt><dd>{ Money(s.Payables) } USD</dd></div></dl></div></section>
+ <section class="dashboard-workflow"><img src="/static/dashboard-workspace.jpg" alt=""/><div class="dashboard-workflow-content"><h2>Chaque opération part d’un document.</h2><p>Importez, vérifiez puis comptabilisez. Les soldes se mettent à jour après validation.</p><a href="/app/invoices/new">Commencer avec une facture <span aria-hidden="true">→</span></a></div></section></div>
+ <section class="dashboard-recent"><div class="dashboard-section-heading"><div><h2>Factures récentes</h2><p>Ouvrez un document pour consulter son état et ses lignes.</p></div><a href="/app/invoices">Voir toutes les factures</a></div>@InvoiceTable(invoices)</section>
  }
 }
 
