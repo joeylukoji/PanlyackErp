@@ -11,3 +11,5 @@ The signature interaction is the document-to-ledger path: original document alon
 The four user-supplied images are bundled as local static assets: the handoff image on login and registration, the green growth image on the dashboard workflow card, the analytics-hand image beside invoice import, and the gold graph above the accounting journal. They are decorative; product copy and real records carry the meaning. The synthetic invoice PNG remains labeled as test data. The replaced generated photographs were removed from the bundle.
 
 The user-supplied monochrome P logo is bundled as panlyack-logo.png and used in authentication, navigation, the workspace badge and the favicon. The original image is preserved; clipped containers frame its whitespace at small sizes. Adjacent brand text provides the accessible name.
+
+The accounting screen presents a trial balance above the journal. Account codes link directly to their ledger lines; a compact selector allows switching accounts or returning to all entries. Wide financial tables scroll within their panels on small screens.

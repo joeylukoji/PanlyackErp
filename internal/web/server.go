@@ -172,12 +172,31 @@ func (s *Server) inventory(w http.ResponseWriter, r *http.Request) {
 	s.render(w, r, pages.Inventory(list, organizationName(r)))
 }
 func (s *Server) accounting(w http.ResponseWriter, r *http.Request) {
-	list, err := s.Accounting.Journal(r.Context(), organizationID(r))
+	balances, err := s.Accounting.TrialBalance(r.Context(), organizationID(r))
 	if err != nil {
 		s.fail(w, r, err)
 		return
 	}
-	s.render(w, r, pages.Accounting(list, organizationName(r)))
+	code := r.URL.Query().Get("account")
+	if code != "" {
+		found := false
+		for _, balance := range balances {
+			if balance.Code == code {
+				found = true
+				break
+			}
+		}
+		if !found {
+			http.Error(w, "Unknown account", http.StatusBadRequest)
+			return
+		}
+	}
+	list, err := s.Accounting.Journal(r.Context(), organizationID(r), code)
+	if err != nil {
+		s.fail(w, r, err)
+		return
+	}
+	s.render(w, r, pages.Accounting(list, balances, code, organizationName(r)))
 }
 func (s *Server) cash(w http.ResponseWriter, r *http.Request) {
 	accounts, err := s.Cash.Accounts(r.Context(), organizationID(r))

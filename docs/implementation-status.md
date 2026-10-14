@@ -16,6 +16,7 @@
 - Local owner login, Argon2id password hashing, organization membership check, expiring server-side sessions and revocation on logout or password rotation.
 - Self-service local registration creates an isolated organization, owner, session, accounting chart, fiscal period, cash accounts and synthetic opening balance in one transaction.
 - Posted invoices support partial supplier payments and customer receipts with an immutable journal entry, cash movement, audit/outbox record and updated payable or receivable. Retries are idempotent and overpayments are rejected.
+- The accounting screen now shows a trial balance with exact debit and credit totals for every account; selecting an account opens its ledger lines. Both views are organization-scoped, and the ledger displays the latest 400 lines.
 
 ## Blueprint work still pending
 - Production identity: invited teammates, multi-user roles, password recovery, rate limits, HTTPS cookies and deployment hardening.
@@ -24,7 +25,7 @@
 - User-configurable organization/valuation policy and US chart of accounts; fiscal-year management UI.
 - Bank reconciliation and general expenses.
 - Persisted reversal/correction workflow (the pure reversal rule is tested, but no reversal command/UI is delivered).
-- General ledger and trial-balance screens, period filters, revenue/cashflow series, low-stock alerts and top-product projections.
+- Period filters, revenue/cashflow series, low-stock alerts and top-product projections. The general ledger is currently capped at 400 recent lines per selected account.
 - Broader `/api/v1` surface: only dashboard JSON currently exists.
 - Fully generated sqlc adapters for all module queries; normalized invoice line/payment tables (draft invoice aggregate uses JSONB).
 - Async outbox dispatcher/replay, multi-user concurrency UX, backups and operational monitoring.

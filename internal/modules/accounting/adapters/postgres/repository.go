@@ -12,6 +12,7 @@ import (
 type Repository struct{ DB db.Store }
 type Posting = ports.Posting
 type JournalRow = ports.JournalRow
+type BalanceRow = ports.BalanceRow
 
 func (r Repository) SeedDemo(ctx context.Context, org, sourceID string) error {
 	conn := r.DB.Conn(ctx)
@@ -72,8 +73,8 @@ func (r Repository) Post(ctx context.Context, p Posting) error {
 	return nil
 }
 
-func (r Repository) Journal(ctx context.Context, org string) ([]JournalRow, error) {
-	rows, err := r.DB.Conn(ctx).Query(ctx, `SELECT e.reference,e.entry_date::text,e.source_id::text,a.code,a.name,l.debit::text,l.credit::text FROM accounting.journal_entries e JOIN accounting.journal_lines l ON l.organization_id=e.organization_id AND l.entry_id=e.id JOIN accounting.accounts a ON a.organization_id=l.organization_id AND a.role=l.role WHERE e.organization_id=$1 ORDER BY e.created_at DESC,a.code LIMIT 400`, org)
+func (r Repository) Journal(ctx context.Context, org, code string) ([]JournalRow, error) {
+	rows, err := r.DB.Conn(ctx).Query(ctx, `SELECT e.reference,e.entry_date::text,e.source_id::text,a.code,a.name,l.debit::text,l.credit::text FROM accounting.journal_entries e JOIN accounting.journal_lines l ON l.organization_id=e.organization_id AND l.entry_id=e.id JOIN accounting.accounts a ON a.organization_id=l.organization_id AND a.role=l.role WHERE e.organization_id=$1 AND ($2='' OR a.code=$2) ORDER BY e.created_at DESC,a.code LIMIT 400`, org, code)
 	if err != nil {
 		return nil, err
 	}
@@ -82,6 +83,29 @@ func (r Repository) Journal(ctx context.Context, org string) ([]JournalRow, erro
 	for rows.Next() {
 		row := JournalRow{}
 		if err := rows.Scan(&row.Reference, &row.Date, &row.SourceID, &row.Code, &row.Name, &row.Debit, &row.Credit); err != nil {
+			return nil, err
+		}
+		result = append(result, row)
+	}
+	return result, rows.Err()
+}
+
+func (r Repository) TrialBalance(ctx context.Context, org string) ([]BalanceRow, error) {
+	rows, err := r.DB.Conn(ctx).Query(ctx, `SELECT a.code,a.name,
+		coalesce(sum(l.debit),0)::text,coalesce(sum(l.credit),0)::text,
+		greatest(coalesce(sum(l.debit-l.credit),0),0)::text,
+		greatest(coalesce(sum(l.credit-l.debit),0),0)::text
+		FROM accounting.accounts a
+		LEFT JOIN accounting.journal_lines l ON l.organization_id=a.organization_id AND l.role=a.role
+		WHERE a.organization_id=$1 GROUP BY a.code,a.name ORDER BY a.code`, org)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	result := []BalanceRow{}
+	for rows.Next() {
+		row := BalanceRow{}
+		if err := rows.Scan(&row.Code, &row.Name, &row.Debit, &row.Credit, &row.DebitBalance, &row.CreditBalance); err != nil {
 			return nil, err
 		}
 		result = append(result, row)

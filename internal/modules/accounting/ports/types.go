@@ -8,3 +8,7 @@ type Posting struct {
 }
 
 type JournalRow struct{ Reference, Date, SourceID, Code, Name, Debit, Credit string }
+
+type BalanceRow struct {
+	Code, Name, Debit, Credit, DebitBalance, CreditBalance string
+}

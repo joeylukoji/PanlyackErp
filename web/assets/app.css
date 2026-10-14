@@ -156,6 +156,16 @@
  .accounting-visual { min-height: 150px; margin-bottom: 18px; }
  .accounting-visual img { object-position: center 49%; }
  .accounting-visual::after { background: linear-gradient(90deg,rgba(9,13,17,.94),rgba(9,13,17,.08) 85%); }
+ .ledger-section { margin-top: 25px; }
+ .ledger-heading { display: flex; align-items: end; justify-content: space-between; gap: 18px; margin-bottom: 12px; }
+ .ledger-heading h2 { margin: 0 0 4px; }
+ .ledger-heading p { margin: 0; font-size: .82rem; }
+ .ledger-filter { display: flex; align-items: end; gap: 8px; }
+ .ledger-filter label { margin: 0 0 11px; white-space: nowrap; }
+ .ledger-filter select { width: min(260px,42vw); }
+ .ledger-filter button { min-width: 90px; }
+ #trial-balance { margin-bottom: 25px; }
+ #trial-balance tfoot th { background: #eaf3f0; color: #193d38; font-weight: 750; }
  .htmx-indicator { display: none; }
  .htmx-request .htmx-indicator { display: inline; }
  .htmx-request button { opacity: .6; pointer-events: none; }
@@ -228,6 +238,10 @@
   .upload-panel .panel-body { padding: 23px; }
   .upload-visual { min-height: 220px; }
   .accounting-visual { min-height: 165px; }
+  .ledger-heading { align-items: stretch; flex-direction: column; }
+  .ledger-filter { align-items: stretch; flex-wrap: wrap; }
+  .ledger-filter label { width: 100%; margin: 0; }
+  .ledger-filter select { flex: 1; min-width: 0; width: auto; }
  }
  @media(max-width:480px) { .metrics { grid-template-columns: 1fr 1fr; gap: 9px; } .metric dd { font-size: 1.23rem; white-space: normal; } .metric small { display: block; margin-top: 2px; font-size: .7rem; } .dashboard-section-heading { flex-wrap: wrap; } .dashboard-recent th:nth-child(2), .dashboard-recent td:nth-child(2), .dashboard-recent th:nth-child(3), .dashboard-recent td:nth-child(3) { display: none; } .dashboard-recent th, .dashboard-recent td { padding: 12px 8px; font-size: .76rem; } .dashboard-recent .badge { padding: 4px 6px; font-size: .7rem; } }
  @media(prefers-reduced-motion:reduce) { html { scroll-behavior: auto; } button, .button, .sidebar nav a, .sidebar nav, .dashboard-actions a, .dashboard-workflow img { transition: none; } .auth-story-photo { animation: none; } }

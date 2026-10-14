@@ -23,6 +23,34 @@ func SettlementBalanceLabel(direction string) string {
  if direction == "SALE" { return "Restant à encaisser" }
  return "Restant à payer"
 }
+type BalanceTotals struct { Debit, Credit decimal.Decimal }
+func TrialBalanceTotals(rows []accounting.BalanceRow) BalanceTotals {
+ totals := BalanceTotals{}
+ for _, row := range rows {
+  debit, _ := decimal.NewFromString(row.DebitBalance)
+  credit, _ := decimal.NewFromString(row.CreditBalance)
+  totals.Debit = totals.Debit.Add(debit)
+  totals.Credit = totals.Credit.Add(credit)
+ }
+ return totals
+}
+func AccountLabel(code, fallback string) string {
+ switch code {
+ case "101": return "Capital initial"
+ case "37": return "Stock de marchandises"
+ case "401": return "Fournisseurs"
+ case "411": return "Clients"
+ case "44566": return "TVA déductible"
+ case "44571": return "TVA collectée"
+ case "511": return "Cartes à encaisser"
+ case "512": return "Banque"
+ case "517": return "Monnaie mobile"
+ case "531": return "Caisse"
+ case "6037": return "Coût des marchandises vendues"
+ case "707": return "Ventes de marchandises"
+ default: return fallback
+ }
+}
 func Status(s string) string { switch s {case "POSTED":return "Comptabilisée";case "CONFIRMED":return "Confirmée";default:return "À vérifier"} }
 func InvoiceURL(id string) string { return "/app/invoices/"+id }
 
@@ -235,13 +263,27 @@ for _,p:=range products {
 }</tbody></table></div>
 } }
 
-templ Accounting(rows []accounting.JournalRow,orgName string) {
+templ Accounting(rows []accounting.JournalRow, balances []accounting.BalanceRow, selectedAccount, orgName string) {
 @Layout("Comptabilité","accounting",orgName) {
-@Heading("Journal comptable","Écritures validées, équilibrées et non modifiables.") {
-} <div class="accounting-visual"><img src="/static/accounting-ledger.webp" alt=""/><div><h2>Un journal lisible, opération par opération.</h2><p>Chaque ligne ci-dessous provient d’une écriture validée.</p></div></div><div class="panel table-scroll"><table><thead><tr><th>Date</th><th>Référence</th><th>Compte</th><th>Libellé</th><th class="amount">Débit USD</th><th class="amount">Crédit USD</th></tr></thead><tbody>
+@Heading("Comptabilité","Balance par compte et écritures validées, sans modification possible.") {
+} <div class="accounting-visual"><img src="/static/accounting-ledger.webp" alt=""/><div><h2>Chaque montant garde sa trace.</h2><p>Parcourez la balance puis ouvrez le grand livre d’un compte.</p></div></div>
+<section class="panel table-scroll" id="trial-balance" aria-labelledby="balance-title"><table><caption id="balance-title">Balance générale · USD</caption><thead><tr><th>Compte</th><th>Libellé</th><th class="amount">Débit cumulé</th><th class="amount">Crédit cumulé</th><th class="amount">Solde débiteur</th><th class="amount">Solde créditeur</th></tr></thead><tbody>
+for _,b:=range balances {
+<tr><td><a href={ templ.SafeURL("/app/accounting?account="+b.Code+"#general-ledger") }>{ b.Code }</a></td><td>{ AccountLabel(b.Code,b.Name) }</td><td class="amount">{ Money(b.Debit) }</td><td class="amount">{ Money(b.Credit) }</td><td class="amount">{ Money(b.DebitBalance) }</td><td class="amount">{ Money(b.CreditBalance) }</td></tr>
+}
+</tbody><tfoot><tr><th colspan="4">Total des soldes</th><th class="amount">{ TrialBalanceTotals(balances).Debit.StringFixed(2) }</th><th class="amount">{ TrialBalanceTotals(balances).Credit.StringFixed(2) }</th></tr></tfoot></table></section>
+<section class="ledger-section" id="general-ledger" aria-labelledby="ledger-title"><div class="ledger-heading"><div><h2 id="ledger-title">Grand livre</h2><p class="muted">Les 400 dernières lignes du compte choisi, ou du journal complet.</p></div><form method="get" action="/app/accounting" class="ledger-filter"><label for="account">Compte</label><select id="account" name="account"><option value="">Tous les comptes</option>
+for _,b:=range balances {
+<option value={ b.Code } selected?={ selectedAccount==b.Code }>{ b.Code } · { AccountLabel(b.Code,b.Name) }</option>
+}
+</select><button type="submit" class="secondary">Afficher</button></form></div><div class="panel table-scroll"><table><thead><tr><th>Date</th><th>Référence</th><th>Compte</th><th>Libellé</th><th class="amount">Débit USD</th><th class="amount">Crédit USD</th></tr></thead><tbody>
 for _,r:=range rows {
-<tr><td>{ r.Date }</td><td>{ r.Reference }</td><td>{ r.Code }</td><td>{ r.Name }</td><td class="amount">{ Money(r.Debit) }</td><td class="amount">{ Money(r.Credit) }</td></tr>
-}</tbody></table></div>
+<tr><td>{ r.Date }</td><td>{ r.Reference }</td><td>{ r.Code }</td><td>{ AccountLabel(r.Code,r.Name) }</td><td class="amount">{ Money(r.Debit) }</td><td class="amount">{ Money(r.Credit) }</td></tr>
+}
+if len(rows)==0 {
+<tr><td colspan="6">Aucune écriture pour ce compte.</td></tr>
+}
+</tbody></table></div></section>
 } }
 
 templ Cash(accounts []cash.Account,movements []cash.Movement,orgName string) {

@@ -242,6 +242,29 @@ func TestPostgresPostingAtomicAndIdempotent(t *testing.T) {
 	if err := pool.QueryRow(ctx, `SELECT count(*) FROM cash.invoice_payments WHERE organization_id=$1 AND invoice_id=$2`, org, creditPurchase.ID).Scan(&count); err != nil || count != 1 {
 		t.Fatal("failed payment remained in cash records", count, err)
 	}
+	balances, err := (account.Repository{DB: store}).TrialBalance(ctx, org)
+	if err != nil {
+		t.Fatal(err)
+	}
+	byCode := map[string]account.BalanceRow{}
+	for _, row := range balances {
+		byCode[row.Code] = row
+	}
+	if byCode["401"].CreditBalance != "70.0000" || byCode["411"].DebitBalance != "13.0000" || byCode["531"].DebitBalance != "4432.6000" {
+		t.Fatal("incorrect trial balance", byCode)
+	}
+	if other, err := (account.Repository{DB: store}).TrialBalance(ctx, uuid.NewString()); err != nil || len(other) != 0 {
+		t.Fatal("trial balance crossed organization boundary", other, err)
+	}
+	ledger, err := (account.Repository{DB: store}).Journal(ctx, org, "401")
+	if err != nil || len(ledger) == 0 {
+		t.Fatal("payables ledger unavailable", err)
+	}
+	for _, row := range ledger {
+		if row.Code != "401" {
+			t.Fatal("ledger contains another account", row)
+		}
+	}
 	if _, err := pool.Exec(ctx, `UPDATE accounting.fiscal_periods SET closed=true WHERE organization_id=$1`, org); err != nil {
 		t.Fatal(err)
 	}
