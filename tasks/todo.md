@@ -10,5 +10,6 @@
 - [ ] Exercise extraction with an installed vision model.
 - [x] Local owner login, membership check, session revocation and protected pages.
 - [x] Self-service test registration with isolated organization and complete demo provisioning.
+- [x] Partial settlement of posted invoices, including cash, accounting and reporting effects.
 - [ ] Production multi-user identity, authorization and operational hardening.
 - [ ] Finish broader blueprint capabilities listed in docs/implementation-status.md.

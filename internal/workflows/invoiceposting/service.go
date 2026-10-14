@@ -97,7 +97,7 @@ func (s Service) Post(ctx context.Context, org, id, actor string) error {
 		if err != nil {
 			return err
 		}
-		if err := s.Accounting.Post(ctx, accountstore.Posting{OrganizationID: org, SourceID: id, Reference: invoice.Number, Date: invoice.IssueDate, Currency: invoice.Currency, Entry: entry}); err != nil {
+		if err := s.Accounting.Post(ctx, accountstore.Posting{OrganizationID: org, SourceType: "INVOICE", SourceID: id, Reference: invoice.Number, Date: invoice.IssueDate, Currency: invoice.Currency, Entry: entry}); err != nil {
 			return err
 		}
 		if err := s.Cash.Record(ctx, cash.Command{OrganizationID: org, SourceID: id, Direction: invoice.Direction, Payments: payments}); err != nil {

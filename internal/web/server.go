@@ -27,6 +27,7 @@ import (
 	"panlyackerp/internal/platform/config"
 	"panlyackerp/internal/workflows/invoiceposting"
 	"panlyackerp/internal/workflows/registration"
+	"panlyackerp/internal/workflows/settlement"
 	assets "panlyackerp/web"
 	"panlyackerp/web/pages"
 	"strconv"
@@ -49,6 +50,7 @@ type Server struct {
 	Reporting       reporting.Repository
 	Auth            identity.Auth
 	Registration    registration.Service
+	Settlement      settlement.Service
 }
 
 func (s *Server) Router() http.Handler {
@@ -88,6 +90,7 @@ func (s *Server) Router() http.Handler {
 		r.Get("/app/invoices/{id}/document", s.document)
 		r.Post("/app/invoices/{id}/review", s.saveReview)
 		r.Post("/app/invoices/{id}/post", s.post)
+		r.Post("/app/invoices/{id}/settlements", s.settle)
 		r.Post("/app/invoices/{id}/reopen", s.reopen)
 		r.Get("/app/inventory", s.inventory)
 		r.Get("/app/accounting", s.accounting)
@@ -206,7 +209,27 @@ func (s *Server) review(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, r, err)
 		return
 	}
-	s.render(w, r, pages.Review(i, csrf(r), "", organizationName(r)))
+	s.renderReview(w, r, i, "")
+}
+
+func (s *Server) renderReview(w http.ResponseWriter, r *http.Request, invoice documents.Invoice, message string) {
+	payments := []cash.Settlement{}
+	due := ""
+	if invoice.Status == "POSTED" {
+		var err error
+		payments, err = s.Cash.Settlements(r.Context(), organizationID(r), invoice.ID)
+		if err != nil {
+			s.fail(w, r, err)
+			return
+		}
+		balance, err := settlement.Outstanding(invoice, payments)
+		if err != nil {
+			s.fail(w, r, err)
+			return
+		}
+		due = balance.String()
+	}
+	s.render(w, r, pages.Review(invoice, csrf(r), message, organizationName(r), payments, due))
 }
 
 func (s *Server) upload(w http.ResponseWriter, r *http.Request) {
@@ -288,18 +311,18 @@ func (s *Server) saveReview(w http.ResponseWriter, r *http.Request) {
 	if current.Status == "NEEDS_REVIEW" {
 		if r.FormValue("action") == "add_line" && len(edited.Lines) < 100 {
 			edited.Lines = append(edited.Lines, documents.Line{Unit: "each", Quantity: "1", UnitPrice: "0", TaxRate: "0"})
-			s.render(w, r, pages.Review(edited, csrf(r), "", organizationName(r)))
+			s.renderReview(w, r, edited, "")
 			return
 		}
 		if index, err := strconv.Atoi(r.FormValue("remove_line")); err == nil && index >= 0 && index < len(edited.Lines) {
 			edited.Lines = append(edited.Lines[:index], edited.Lines[index+1:]...)
-			s.render(w, r, pages.Review(edited, csrf(r), "", organizationName(r)))
+			s.renderReview(w, r, edited, "")
 			return
 		}
 	}
 	err = s.DocumentService.Review(r.Context(), organizationID(r), actor(r), edited, r.FormValue("action") == "confirm")
 	if err != nil {
-		s.render(w, r, pages.Review(edited, csrf(r), safeMessage(err), organizationName(r)))
+		s.renderReview(w, r, edited, safeMessage(err))
 		return
 	}
 	s.redirect(w, r, pages.InvoiceURL(id))
@@ -318,7 +341,33 @@ func (s *Server) post(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		s.Logger.Warn("posting rejected", "error", err, "invoice_id", id)
-		s.render(w, r, pages.Review(i, csrf(r), safeMessage(err), organizationName(r)))
+		s.renderReview(w, r, i, safeMessage(err))
+		return
+	}
+	s.redirect(w, r, pages.InvoiceURL(id))
+}
+func (s *Server) settle(w http.ResponseWriter, r *http.Request) {
+	id, err := invoiceID(r)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	command := settlement.Command{
+		OrganizationID: organizationID(r),
+		InvoiceID:      id,
+		ID:             r.FormValue("request_id"),
+		Method:         r.FormValue("method"),
+		Amount:         r.FormValue("amount"),
+		ActorID:        actor(r),
+	}
+	if err := s.Settlement.Record(r.Context(), command); err != nil {
+		invoice, loadErr := s.Documents.Get(r.Context(), organizationID(r), id, false)
+		if loadErr != nil {
+			s.fail(w, r, loadErr)
+			return
+		}
+		s.Logger.Warn("settlement rejected", "error", err, "invoice_id", id)
+		s.renderReview(w, r, invoice, safeMessage(err))
 		return
 	}
 	s.redirect(w, r, pages.InvoiceURL(id))

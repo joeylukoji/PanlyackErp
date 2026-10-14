@@ -4,6 +4,7 @@ import (
  "fmt"
  "strconv"
  "github.com/shopspring/decimal"
+ "github.com/google/uuid"
  documents "panlyackerp/internal/modules/documents/domain"
  inventory "panlyackerp/internal/modules/inventory/application"
  accounting "panlyackerp/internal/modules/accounting/ports"
@@ -12,6 +13,16 @@ import (
 )
 
 func Money(s string) string { d,err:=decimal.NewFromString(s);if err!=nil{return s};return d.StringFixed(2) }
+func SettlementAmount(s string) string {
+ d, err := decimal.NewFromString(s)
+ if err != nil { return s }
+ if d.Equal(d.Round(2)) { return d.StringFixed(2) }
+ return d.StringFixed(4)
+}
+func SettlementBalanceLabel(direction string) string {
+ if direction == "SALE" { return "Restant à encaisser" }
+ return "Restant à payer"
+}
 func Status(s string) string { switch s {case "POSTED":return "Comptabilisée";case "CONFIRMED":return "Confirmée";default:return "À vérifier"} }
 func InvoiceURL(id string) string { return "/app/invoices/"+id }
 
@@ -121,7 +132,7 @@ templ Upload(csrf,message,orgName string) {
 }
 }
 
-templ Review(i documents.Invoice,csrf,message,orgName string) {
+templ Review(i documents.Invoice,csrf,message,orgName string, settlements []cash.Settlement, due string) {
  @Layout("Vérifier la facture","invoices",orgName) {
  @Heading(i.Number,"Vérifiez le document et les données avant de comptabiliser.") {
 <span class={ statusClass(i.Status) }>{ Status(i.Status) }</span>
@@ -186,6 +197,26 @@ templ Review(i documents.Invoice,csrf,message,orgName string) {
 }
  if i.Status=="POSTED" {
 <div class="actions"><a href="/app/accounting">Voir le journal</a><a href="/app/dashboard">Voir les soldes</a></div>
+ <div class="section-heading"><h3 class="section-title">Solde de la facture</h3><p>{ SettlementBalanceLabel(i.Direction) } : <strong>{ SettlementAmount(due) } USD</strong></p></div>
+if len(settlements)>0 {
+<div class="table-scroll"><table><thead><tr><th>Date</th><th>Moyen</th><th class="amount">Montant USD</th></tr></thead><tbody>
+for _,payment:=range settlements {
+<tr><td>{ payment.Date }</td><td>{ paymentLabel(payment.Method) }</td><td class="amount">{ SettlementAmount(payment.Amount) }</td></tr>
+}</tbody></table></div>
+}
+if due!="0" {
+<form class="settlement-form" method="post" action={ templ.SafeURL(InvoiceURL(i.ID)+"/settlements") } hx-post={ InvoiceURL(i.ID)+"/settlements" } hx-target="body" hx-disabled-elt="find button"><input type="hidden" name="csrf" value={ csrf }/><input type="hidden" name="request_id" value={ uuid.NewString() }/>
+<div class="form-grid"><div><label for="settlement_amount">Montant</label><input id="settlement_amount" name="amount" inputmode="decimal" value={ due } required/></div><div><label for="settlement_method">Moyen de paiement</label><select id="settlement_method" name="method"><option value="CASH">Espèces</option><option value="BANK">Banque</option><option value="MOBILE_MONEY">Mobile money</option><option value="CARD">Carte</option></select></div></div>
+<button type="submit">
+if i.Direction=="PURCHASE" {
+Enregistrer le paiement
+} else {
+Enregistrer l’encaissement
+}
+</button></form>
+} else {
+<p class="muted">Cette facture est entièrement réglée.</p>
+}
 }
  </div></section></div>
 }

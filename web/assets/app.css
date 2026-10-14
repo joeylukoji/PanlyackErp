@@ -137,6 +137,8 @@
  .line-table button { min-height: 39px; padding: 7px 10px; font-size: .83rem; }
  .review-panel .table-scroll { margin: 0 -26px; padding: 0 18px; }
  .review-panel .table-scroll + button { margin-top: 13px; }
+ .settlement-form { display: grid; gap: 18px; margin-top: 20px; padding-top: 18px; border-top: 1px solid #e2eae7; }
+ .settlement-form button { justify-self: start; }
  .upload-layout { display: grid; grid-template-columns: minmax(0,1.15fr) minmax(280px,.85fr); gap: 20px; align-items: stretch; }
  .upload-panel { min-width: 0; }
  .upload-panel .panel-body { padding: 33px; }

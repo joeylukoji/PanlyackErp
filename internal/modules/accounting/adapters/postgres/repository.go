@@ -48,15 +48,18 @@ func (r Repository) Post(ctx context.Context, p Posting) error {
 	if err := p.Entry.Validate(); err != nil {
 		return err
 	}
+	if p.SourceType != "INVOICE" && p.SourceType != "SETTLEMENT" {
+		return errors.New("invalid accounting source type")
+	}
 	conn := r.DB.Conn(ctx)
 	var open bool
 	err := conn.QueryRow(ctx, `SELECT NOT closed FROM accounting.fiscal_periods
  WHERE organization_id=$1 AND year=EXTRACT(YEAR FROM $2::date) FOR SHARE`, p.OrganizationID, p.Date).Scan(&open)
 	if err != nil || !open {
-		return errors.New("fiscal period is closed or not configured")
+		return errors.New("La période comptable est fermée ou indisponible.")
 	}
 	id := uuid.NewString()
-	_, err = conn.Exec(ctx, `INSERT INTO accounting.journal_entries(organization_id,id,source_type,source_id,reference,entry_date,currency) VALUES($1,$2,'INVOICE',$3,$4,$5,$6)`, p.OrganizationID, id, p.SourceID, p.Reference, p.Date, p.Currency)
+	_, err = conn.Exec(ctx, `INSERT INTO accounting.journal_entries(organization_id,id,source_type,source_id,reference,entry_date,currency) VALUES($1,$2,$3,$4,$5,$6,$7)`, p.OrganizationID, id, p.SourceType, p.SourceID, p.Reference, p.Date, p.Currency)
 	if err != nil {
 		return err
 	}

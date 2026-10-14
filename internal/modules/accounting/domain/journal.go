@@ -112,3 +112,30 @@ func (e Entry) Reverse() Entry {
 	}
 	return result
 }
+
+func SettlementEntry(direction, method string, amount decimal.Decimal) (Entry, error) {
+	entry := Entry{Lines: []Line{}}
+	if !amount.IsPositive() {
+		return entry, errors.New("settlement amount must be positive")
+	}
+	switch method {
+	case "CASH", "BANK", "MOBILE_MONEY", "CARD":
+	default:
+		return entry, errors.New("invalid payment method")
+	}
+	switch direction {
+	case "PURCHASE":
+		entry.Lines = []Line{
+			{Role: "ACCOUNTS_PAYABLE", Debit: amount},
+			{Role: method, Credit: amount},
+		}
+	case "SALE":
+		entry.Lines = []Line{
+			{Role: method, Debit: amount},
+			{Role: "ACCOUNTS_RECEIVABLE", Credit: amount},
+		}
+	default:
+		return entry, errors.New("invalid settlement direction")
+	}
+	return entry, entry.Validate()
+}

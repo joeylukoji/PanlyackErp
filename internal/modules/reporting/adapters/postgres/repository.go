@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 	"panlyackerp/internal/modules/reporting/ports"
@@ -12,6 +13,37 @@ import (
 type Repository struct{ DB db.Store }
 type Posted = ports.Posted
 type Summary = ports.Summary
+
+func (r Repository) ProjectSettlement(ctx context.Context, event ports.Settled) error {
+	payload, err := json.Marshal(event)
+	if err != nil {
+		return err
+	}
+	tag, err := r.DB.Conn(ctx).Exec(ctx, `INSERT INTO platform.outbox_events(id,organization_id,event_type,source_id,payload,projected_at)
+		VALUES($1,$2,'InvoiceSettled',$3,$4,now()) ON CONFLICT(organization_id,event_type,source_id) DO NOTHING`, uuid.NewString(), event.OrganizationID, event.SourceID, payload)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() != 1 {
+		return errors.New("settlement already projected")
+	}
+	cash := event.Amount
+	receivables, payables := event.Amount.Neg(), decimal.Zero
+	if event.Direction == "PURCHASE" {
+		cash = cash.Neg()
+		receivables, payables = decimal.Zero, event.Amount.Neg()
+	}
+	tag, err = r.DB.Conn(ctx).Exec(ctx, `UPDATE reporting.summary
+		SET cash=cash+$2,receivables=receivables+$3,payables=payables+$4 WHERE organization_id=$1`,
+		event.OrganizationID, cash.String(), receivables.String(), payables.String())
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() != 1 {
+		return errors.New("organization summary not found")
+	}
+	return nil
+}
 
 func (r Repository) SeedDemo(ctx context.Context, org string) error {
 	_, err := r.DB.Conn(ctx).Exec(ctx, `INSERT INTO reporting.summary(organization_id,cash) VALUES($1,5000)`, org)

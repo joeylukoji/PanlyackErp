@@ -28,3 +28,34 @@ func TestPostingPolicies(t *testing.T) {
 		t.Fatal("accepted unbalanced journal")
 	}
 }
+
+func TestSettlementEntry(t *testing.T) {
+	amount := decimal.NewFromInt(30)
+	for _, tc := range []struct {
+		direction, debit, credit string
+	}{
+		{"PURCHASE", "ACCOUNTS_PAYABLE", "CASH"},
+		{"SALE", "BANK", "ACCOUNTS_RECEIVABLE"},
+	} {
+		method := "CASH"
+		if tc.direction == "SALE" {
+			method = "BANK"
+		}
+		entry, err := SettlementEntry(tc.direction, method, amount)
+		if err != nil || len(entry.Lines) != 2 || entry.Lines[0].Role != tc.debit || entry.Lines[1].Role != tc.credit {
+			t.Fatalf("%s settlement: %+v, %v", tc.direction, entry, err)
+		}
+	}
+	for _, tc := range []struct {
+		direction, method string
+		amount            decimal.Decimal
+	}{
+		{"PURCHASE", "CASH", decimal.Zero},
+		{"SALE", "UNKNOWN", amount},
+		{"OTHER", "BANK", amount},
+	} {
+		if _, err := SettlementEntry(tc.direction, tc.method, tc.amount); err == nil {
+			t.Fatalf("accepted invalid settlement: %+v", tc)
+		}
+	}
+}

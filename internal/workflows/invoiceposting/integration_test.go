@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/shopspring/decimal"
 	"os"
 	account "panlyackerp/internal/modules/accounting/adapters/postgres"
 	cash "panlyackerp/internal/modules/cash/adapters/postgres"
@@ -18,6 +19,7 @@ import (
 	"panlyackerp/internal/platform/audit"
 	"panlyackerp/internal/platform/db"
 	"panlyackerp/internal/workflows/invoiceposting"
+	"panlyackerp/internal/workflows/settlement"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -184,8 +186,70 @@ func TestPostgresPostingAtomicAndIdempotent(t *testing.T) {
 	if err != nil || salesSummary.Revenue != "20.0000" || salesSummary.Cost != "7.6000" || salesSummary.Receivables != "20.0000" || salesSummary.Inventory != "2529.8000" {
 		t.Fatal("incorrect credit sale projection", salesSummary, err)
 	}
+	settlements := settlement.Service{UOW: store, Documents: docs, Cash: cash.Repository{DB: store}, Accounting: account.Repository{DB: store}, Reporting: reports, Audit: audit.Log{DB: store}}
+	paymentID := uuid.NewString()
+	pay := settlement.Command{OrganizationID: org, InvoiceID: sale.ID, ID: paymentID, Method: "BANK", Amount: "7", ActorID: owner.UserID}
+	for range 3 {
+		if err := settlements.Record(ctx, pay); err != nil {
+			t.Fatal("settlement retry", err)
+		}
+	}
+	if err := settlements.Record(ctx, settlement.Command{OrganizationID: org, InvoiceID: sale.ID, ID: uuid.NewString(), Method: "BANK", Amount: "14", ActorID: owner.UserID}); err == nil {
+		t.Fatal("accepted overpayment")
+	}
+	if err := settlements.Record(ctx, settlement.Command{OrganizationID: uuid.NewString(), InvoiceID: sale.ID, ID: uuid.NewString(), Method: "BANK", Amount: "1", ActorID: owner.UserID}); err == nil {
+		t.Fatal("settled another organization's invoice")
+	}
+	paidSummary, err := reports.Summary(ctx, org)
+	if err != nil || paidSummary.Receivables != "13.0000" || paidSummary.Cash != "4469.6000" || paidSummary.Inventory != salesSummary.Inventory {
+		t.Fatal("wrong settlement projection", paidSummary, err)
+	}
+	var settled decimal.Decimal
+	if err := pool.QueryRow(ctx, `SELECT coalesce(sum(amount),0) FROM cash.invoice_payments WHERE organization_id=$1 AND invoice_id=$2`, org, sale.ID).Scan(&settled); err != nil || !settled.Equal(decimal.NewFromInt(7)) {
+		t.Fatal("duplicate settlement", settled, err)
+	}
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM accounting.journal_entries WHERE organization_id=$1 AND source_type='SETTLEMENT'`, org).Scan(&count); err != nil || count != 1 {
+		t.Fatal("duplicate settlement journal", count, err)
+	}
+	if err := pool.QueryRow(ctx, `SELECT sum(debit-credit)::text FROM accounting.journal_lines WHERE organization_id=$1`, org).Scan(&balance); err != nil || balance != "0.0000" {
+		t.Fatal("unbalanced settlement journal", balance, err)
+	}
+	creditPurchase := invoice
+	creditPurchase.ID = uuid.NewString()
+	creditPurchase.Number = "CREDIT-PURCHASE"
+	creditPurchase.Total = "100"
+	creditPurchase.Payments = []doc.Payment{}
+	creditPurchase.Lines = []doc.Line{{SKU: "CREDIT-ITEM", Name: "Credit item", Unit: "each", Quantity: "10", UnitPrice: "10", TaxRate: "0"}}
+	if err := docs.Create(ctx, creditPurchase, documents.File{Key: uuid.NewString(), MIME: "image/png", Hash: "test"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := service.Post(ctx, org, creditPurchase.ID, owner.UserID); err != nil {
+		t.Fatal(err)
+	}
+	if err := settlements.Record(ctx, settlement.Command{OrganizationID: org, InvoiceID: creditPurchase.ID, ID: uuid.NewString(), Method: "CASH", Amount: "30", ActorID: owner.UserID}); err != nil {
+		t.Fatal("supplier payment", err)
+	}
+	if err := settlements.Record(ctx, settlement.Command{OrganizationID: org, InvoiceID: creditPurchase.ID, ID: uuid.NewString(), Method: "BANK", Amount: "10", ActorID: owner.UserID}); err == nil {
+		t.Fatal("accepted payment from empty bank account")
+	}
+	finalSummary, err := reports.Summary(ctx, org)
+	if err != nil || finalSummary.Payables != "70.0000" || finalSummary.Receivables != "13.0000" || finalSummary.Cash != "4439.6000" {
+		t.Fatal("supplier payment or rollback failed", finalSummary, err)
+	}
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM accounting.journal_entries WHERE organization_id=$1 AND source_type='SETTLEMENT'`, org).Scan(&count); err != nil || count != 2 {
+		t.Fatal("failed payment created journal", count, err)
+	}
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM cash.invoice_payments WHERE organization_id=$1 AND invoice_id=$2`, org, creditPurchase.ID).Scan(&count); err != nil || count != 1 {
+		t.Fatal("failed payment remained in cash records", count, err)
+	}
 	if _, err := pool.Exec(ctx, `UPDATE accounting.fiscal_periods SET closed=true WHERE organization_id=$1`, org); err != nil {
 		t.Fatal(err)
+	}
+	if err := settlements.Record(ctx, settlement.Command{OrganizationID: org, InvoiceID: sale.ID, ID: uuid.NewString(), Method: "BANK", Amount: "1", ActorID: owner.UserID}); err == nil {
+		t.Fatal("accepted settlement in closed fiscal period")
+	}
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM cash.invoice_payments WHERE organization_id=$1 AND invoice_id=$2`, org, sale.ID).Scan(&count); err != nil || count != 1 {
+		t.Fatal("closed-period settlement remained in cash records", count, err)
 	}
 	closed := invoice
 	closed.ID = uuid.NewString()

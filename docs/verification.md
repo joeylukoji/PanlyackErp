@@ -26,6 +26,9 @@ Environment: Windows, Go 1.26.4, Python 3.13.5, PostgreSQL 17 in Docker. Contain
 - Browser: a new local test account registered, imported the synthetic PNG, confirmed and posted it, viewed stock 537.40 USD and cash 4462.60 USD, then logged out and back into the same organization. Registration layout was inspected at 1440px and 390px without page overflow.
 - Four user-supplied images load as local assets on authentication, dashboard, invoice import and accounting. Login, dashboard, import and journal were visually inspected at desktop width; registration, dashboard, import and journal were inspected at 390px with no document-wide horizontal overflow. The local registration form still creates a working session.
 - After the image changes, templ generation, Tailwind CSS build, `go vet ./...`, PostgreSQL registration/posting integration tests and the Impeccable detector passed; the detector returned no findings.
+- Later invoice settlement: PostgreSQL integration covers customer receipt, supplier payment, exact journal balance, retry idempotency, cross-organization rejection, overpayment, insufficient funds and a closed fiscal period. A local HTTP flow registered a fresh workspace, uploaded and confirmed a credit invoice, posted it, recorded 100 USD cash, retried the same request and verified a 437.40 USD payable with 4,900 USD cash.
+- After the settlement change, templ generation, CSS build, `go test ./...` with PostgreSQL integration, `go vet ./...` and the Impeccable detector passed.
+- After the final local restart, the invoice page displayed the precise 437.40 USD balance; a 500 USD overpayment returned a French validation error and left the 437.40 USD payable and 4,900 USD cash unchanged.
 
 ## Limits
 - Real Ollama model extraction not exercised; adapter must be tested with the chosen installed model.
@@ -35,3 +38,4 @@ Environment: Windows, Go 1.26.4, Python 3.13.5, PostgreSQL 17 in Docker. Contain
 - Graphify output covers an earlier implementation snapshot. Its health report retains dangling references and collapsed edges; use it for navigation, not proof of correctness or completeness.
 - This is a local demo with self-service owner registration, not production-ready authentication. Rate limits, invited teammates, password recovery and HTTPS deployment remain pending.
 - Python tests pass with one upstream Starlette TestClient deprecation warning about httpx.
+- Chrome DevTools MCP was unavailable for this settlement change; the updated form was verified through its rendered HTML and local HTTP flow, not a fresh visual browser inspection.

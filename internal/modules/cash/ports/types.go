@@ -15,3 +15,5 @@ type Command struct {
 type Account struct{ Method, Balance string }
 
 type Movement struct{ SourceID, Method, Amount, Date string }
+
+type Settlement struct{ ID, InvoiceID, Method, Amount, Date string }

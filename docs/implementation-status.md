@@ -15,13 +15,14 @@
 - Generated sqlc organization query. Other module SQL currently remains explicit parameterized pgx in module-owned adapters.
 - Local owner login, Argon2id password hashing, organization membership check, expiring server-side sessions and revocation on logout or password rotation.
 - Self-service local registration creates an isolated organization, owner, session, accounting chart, fiscal period, cash accounts and synthetic opening balance in one transaction.
+- Posted invoices support partial supplier payments and customer receipts with an immutable journal entry, cash movement, audit/outbox record and updated payable or receivable. Retries are idempotent and overpayments are rejected.
 
 ## Blueprint work still pending
 - Production identity: invited teammates, multi-user roles, password recovery, rate limits, HTTPS cookies and deployment hardening.
 - Real vision model runtime verification; OCR quality assessment, field-level extraction confidence UX and extraction retry queue.
 - Independent product/category/warehouse CRUD, manual inventory adjustments, returns and losses.
 - User-configurable organization/valuation policy and US chart of accounts; fiscal-year management UI.
-- Standalone customer/supplier payments after posting, bank reconciliation, general expenses.
+- Bank reconciliation and general expenses.
 - Persisted reversal/correction workflow (the pure reversal rule is tested, but no reversal command/UI is delivered).
 - General ledger and trial-balance screens, period filters, revenue/cashflow series, low-stock alerts and top-product projections.
 - Broader `/api/v1` surface: only dashboard JSON currently exists.

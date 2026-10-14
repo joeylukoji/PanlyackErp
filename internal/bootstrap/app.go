@@ -20,6 +20,7 @@ import (
 	"panlyackerp/internal/web"
 	"panlyackerp/internal/workflows/invoiceposting"
 	"panlyackerp/internal/workflows/registration"
+	"panlyackerp/internal/workflows/settlement"
 	"time"
 )
 
@@ -38,5 +39,6 @@ func New(cfg config.Config, pool *pgxpool.Pool, logger *slog.Logger) *web.Server
 		Registration:    registration.Service{UOW: store, Identity: auth, Cash: money, Accounting: accounts, Reporting: reports},
 		DocumentService: docapp.Service{Repository: docs, Storage: storage, Extractor: ai.Client{HTTP: &http.Client{Timeout: 100 * time.Second}, BaseURL: cfg.AIURL, Key: cfg.AIKey}, UOW: store, Audit: log},
 		Posting:         invoiceposting.Service{UOW: store, Documents: docs, Identity: identity.Repository{DB: store}, Inventory: inventoryapp.Service{Repository: inv}, Accounting: accounts, Cash: money, Reporting: reports, Audit: log},
+		Settlement:      settlement.Service{UOW: store, Documents: docs, Cash: money, Accounting: accounts, Reporting: reports, Audit: log},
 	}
 }

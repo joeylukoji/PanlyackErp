@@ -4,7 +4,7 @@ A local ERP MVP that turns a reviewed invoice into inventory, journal and cash o
 
 Go + Chi · templ + HTMX + Tailwind · PostgreSQL · FastAPI
 
-**Status:** the complete purchase invoice demo flow supports self-service local test accounts. Each registration creates an isolated organization with its own opening balances. This is not a production SaaS release. The broader blueprint includes capabilities still outside this delivery; see [implementation status](docs/implementation-status.md).
+**Status:** the purchase invoice demo and later settlement flow support self-service local test accounts. Each registration creates an isolated organization with its own opening balances. This is not a production SaaS release. The broader blueprint includes capabilities still outside this delivery; see [implementation status](docs/implementation-status.md).
 
 ## Quick start with Docker
 
@@ -47,8 +47,11 @@ For a foreground Go development process after starting the AI service, use `./sc
 3. Correct the supplier, quantities, prices, taxes or payment amounts. Add/remove lines when needed. The total must equal the exact sum of lines and tax.
 4. Choose **Confirmer les données**, then **Comptabiliser la facture**.
 5. Open stock, accounting, cash and dashboard screens. A newly registered workspace starts with 5,000 USD cash and no stock; after posting it has **4,462.60 USD cash** and **537.40 USD stock**. The pre-seeded Panlyack Trading workspace includes 2,000 USD opening stock and therefore reaches **2,537.40 USD stock**.
+6. To test a later payment, set the invoice's initial **Espèces** amount to `0` before confirmation. After posting, open the invoice, choose an amount and a payment method under **Solde de la facture**, then record it. The remaining payable or receivable, journal and cash balances update together.
 
 Repeated posting of the same invoice returns success without duplicate effects. Re-uploading a file creates another draft: file hashes are retained for traceability, not used as business-level duplicate invoice detection.
+
+Settlements can be partial and may be repeated until the outstanding balance reaches zero. Each submission carries a request ID so a retry does not create a second payment. An overpayment, insufficient cash balance or closed fiscal period leaves the invoice and financial records unchanged.
 
 Confirmed invoices require **Reprendre la vérification** before editing. Posted invoices and journal entries are immutable through the application. Journal rows also have database mutation guards.
 
@@ -92,9 +95,9 @@ internal/modules/
   documents               upload, extraction, review and transitions
   inventory               products, FIFO/AVCO and stock persistence
   accounting              deterministic entries, fiscal periods, journal
-  cash                    split payments and cash movements
+  cash                    split payments, later settlements and cash movements
   reporting               transactional dashboard projection
-internal/workflows/       cross-module invoice posting
+internal/workflows/       cross-module invoice posting, settlement and registration
 internal/platform/        config, transaction context, exact values, audit
 internal/web/             HTTP handlers and local-demo security
 web/                      templ components and embedded static assets
