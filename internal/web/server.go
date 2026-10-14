@@ -26,6 +26,7 @@ import (
 	reporting "panlyackerp/internal/modules/reporting/adapters/postgres"
 	"panlyackerp/internal/platform/config"
 	"panlyackerp/internal/workflows/invoiceposting"
+	"panlyackerp/internal/workflows/registration"
 	assets "panlyackerp/web"
 	"panlyackerp/web/pages"
 	"strconv"
@@ -47,6 +48,7 @@ type Server struct {
 	Cash            cash.Repository
 	Reporting       reporting.Repository
 	Auth            identity.Auth
+	Registration    registration.Service
 }
 
 func (s *Server) Router() http.Handler {
@@ -66,6 +68,8 @@ func (s *Server) Router() http.Handler {
 	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.FS(static))))
 	r.Get("/login", s.loginPage)
 	r.Post("/login", s.login)
+	r.Get("/register", s.registerPage)
+	r.Post("/register", s.register)
 	r.Post("/logout", s.logout)
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/app/dashboard", http.StatusSeeOther)
@@ -76,7 +80,9 @@ func (s *Server) Router() http.Handler {
 		r.Get("/logout", s.logoutPage)
 		r.Get("/app/_partials/dashboard/kpis", s.kpis)
 		r.Get("/app/invoices", s.invoices)
-		r.Get("/app/invoices/new", func(w http.ResponseWriter, r *http.Request) { s.render(w, r, pages.Upload(csrf(r), "")) })
+		r.Get("/app/invoices/new", func(w http.ResponseWriter, r *http.Request) {
+			s.render(w, r, pages.Upload(csrf(r), "", organizationName(r)))
+		})
 		r.Post("/app/invoices/upload", s.upload)
 		r.Get("/app/invoices/{id}", s.review)
 		r.Get("/app/invoices/{id}/document", s.document)
@@ -87,7 +93,7 @@ func (s *Server) Router() http.Handler {
 		r.Get("/app/accounting", s.accounting)
 		r.Get("/app/cash", s.cash)
 		r.Get("/api/v1/dashboard", func(w http.ResponseWriter, r *http.Request) {
-			data, err := s.Reporting.Summary(r.Context(), DemoOrganization)
+			data, err := s.Reporting.Summary(r.Context(), organizationID(r))
 			if err != nil {
 				s.fail(w, r, err)
 				return
@@ -126,20 +132,20 @@ func safeMessage(err error) string {
 }
 
 func (s *Server) dashboard(w http.ResponseWriter, r *http.Request) {
-	summary, err := s.Reporting.Summary(r.Context(), DemoOrganization)
+	summary, err := s.Reporting.Summary(r.Context(), organizationID(r))
 	if err != nil {
 		s.fail(w, r, err)
 		return
 	}
-	list, err := s.Documents.List(r.Context(), DemoOrganization)
+	list, err := s.Documents.List(r.Context(), organizationID(r))
 	if err != nil {
 		s.fail(w, r, err)
 		return
 	}
-	s.render(w, r, pages.Dashboard(summary, list))
+	s.render(w, r, pages.Dashboard(summary, list, organizationName(r)))
 }
 func (s *Server) kpis(w http.ResponseWriter, r *http.Request) {
-	summary, err := s.Reporting.Summary(r.Context(), DemoOrganization)
+	summary, err := s.Reporting.Summary(r.Context(), organizationID(r))
 	if err != nil {
 		s.fail(w, r, err)
 		return
@@ -147,41 +153,41 @@ func (s *Server) kpis(w http.ResponseWriter, r *http.Request) {
 	s.render(w, r, pages.KPI(summary))
 }
 func (s *Server) invoices(w http.ResponseWriter, r *http.Request) {
-	list, err := s.Documents.List(r.Context(), DemoOrganization)
+	list, err := s.Documents.List(r.Context(), organizationID(r))
 	if err != nil {
 		s.fail(w, r, err)
 		return
 	}
-	s.render(w, r, pages.Invoices(list))
+	s.render(w, r, pages.Invoices(list, organizationName(r)))
 }
 func (s *Server) inventory(w http.ResponseWriter, r *http.Request) {
-	list, err := s.Inventory.List(r.Context(), DemoOrganization)
+	list, err := s.Inventory.List(r.Context(), organizationID(r))
 	if err != nil {
 		s.fail(w, r, err)
 		return
 	}
-	s.render(w, r, pages.Inventory(list))
+	s.render(w, r, pages.Inventory(list, organizationName(r)))
 }
 func (s *Server) accounting(w http.ResponseWriter, r *http.Request) {
-	list, err := s.Accounting.Journal(r.Context(), DemoOrganization)
+	list, err := s.Accounting.Journal(r.Context(), organizationID(r))
 	if err != nil {
 		s.fail(w, r, err)
 		return
 	}
-	s.render(w, r, pages.Accounting(list))
+	s.render(w, r, pages.Accounting(list, organizationName(r)))
 }
 func (s *Server) cash(w http.ResponseWriter, r *http.Request) {
-	accounts, err := s.Cash.Accounts(r.Context(), DemoOrganization)
+	accounts, err := s.Cash.Accounts(r.Context(), organizationID(r))
 	if err != nil {
 		s.fail(w, r, err)
 		return
 	}
-	movements, err := s.Cash.Movements(r.Context(), DemoOrganization)
+	movements, err := s.Cash.Movements(r.Context(), organizationID(r))
 	if err != nil {
 		s.fail(w, r, err)
 		return
 	}
-	s.render(w, r, pages.Cash(accounts, movements))
+	s.render(w, r, pages.Cash(accounts, movements, organizationName(r)))
 }
 
 func invoiceID(r *http.Request) (string, error) {
@@ -195,18 +201,18 @@ func (s *Server) review(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	i, err := s.Documents.Get(r.Context(), DemoOrganization, id, false)
+	i, err := s.Documents.Get(r.Context(), organizationID(r), id, false)
 	if err != nil {
 		s.fail(w, r, err)
 		return
 	}
-	s.render(w, r, pages.Review(i, csrf(r), ""))
+	s.render(w, r, pages.Review(i, csrf(r), "", organizationName(r)))
 }
 
 func (s *Server) upload(w http.ResponseWriter, r *http.Request) {
 	file, _, err := r.FormFile("document")
 	if err != nil {
-		s.render(w, r, pages.Upload(csrf(r), "Choisissez un fichier PNG, JPEG ou PDF."))
+		s.render(w, r, pages.Upload(csrf(r), "Choisissez un fichier PNG, JPEG ou PDF.", organizationName(r)))
 		return
 	}
 	defer file.Close()
@@ -216,18 +222,18 @@ func (s *Server) upload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if len(data) == 0 || int64(len(data)) > s.Config.MaxUpload {
-		s.render(w, r, pages.Upload(csrf(r), "Fichier vide ou trop volumineux (10 Mo maximum)."))
+		s.render(w, r, pages.Upload(csrf(r), "Fichier vide ou trop volumineux (10 Mo maximum).", organizationName(r)))
 		return
 	}
 	mime := http.DetectContentType(data)
 	if mime != "image/jpeg" && mime != "image/png" && mime != "application/pdf" {
-		s.render(w, r, pages.Upload(csrf(r), "Format non autorisé. Utilisez PNG, JPEG ou PDF."))
+		s.render(w, r, pages.Upload(csrf(r), "Format non autorisé. Utilisez PNG, JPEG ou PDF.", organizationName(r)))
 		return
 	}
-	id, err := s.DocumentService.Upload(r.Context(), DemoOrganization, actor(r), data, mime)
+	id, err := s.DocumentService.Upload(r.Context(), organizationID(r), actor(r), data, mime)
 	if err != nil {
 		s.Logger.Error("upload failed", "error", err)
-		s.render(w, r, pages.Upload(csrf(r), "L’extraction a échoué. Vérifiez que le service IA est disponible, puis réessayez."))
+		s.render(w, r, pages.Upload(csrf(r), "L’extraction a échoué. Vérifiez que le service IA est disponible, puis réessayez.", organizationName(r)))
 		return
 	}
 	s.redirect(w, r, pages.InvoiceURL(id))
@@ -239,7 +245,7 @@ func (s *Server) saveReview(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	current, err := s.Documents.Get(r.Context(), DemoOrganization, id, false)
+	current, err := s.Documents.Get(r.Context(), organizationID(r), id, false)
 	if err != nil {
 		s.fail(w, r, err)
 		return
@@ -282,18 +288,18 @@ func (s *Server) saveReview(w http.ResponseWriter, r *http.Request) {
 	if current.Status == "NEEDS_REVIEW" {
 		if r.FormValue("action") == "add_line" && len(edited.Lines) < 100 {
 			edited.Lines = append(edited.Lines, documents.Line{Unit: "each", Quantity: "1", UnitPrice: "0", TaxRate: "0"})
-			s.render(w, r, pages.Review(edited, csrf(r), ""))
+			s.render(w, r, pages.Review(edited, csrf(r), "", organizationName(r)))
 			return
 		}
 		if index, err := strconv.Atoi(r.FormValue("remove_line")); err == nil && index >= 0 && index < len(edited.Lines) {
 			edited.Lines = append(edited.Lines[:index], edited.Lines[index+1:]...)
-			s.render(w, r, pages.Review(edited, csrf(r), ""))
+			s.render(w, r, pages.Review(edited, csrf(r), "", organizationName(r)))
 			return
 		}
 	}
-	err = s.DocumentService.Review(r.Context(), DemoOrganization, actor(r), edited, r.FormValue("action") == "confirm")
+	err = s.DocumentService.Review(r.Context(), organizationID(r), actor(r), edited, r.FormValue("action") == "confirm")
 	if err != nil {
-		s.render(w, r, pages.Review(edited, csrf(r), safeMessage(err)))
+		s.render(w, r, pages.Review(edited, csrf(r), safeMessage(err), organizationName(r)))
 		return
 	}
 	s.redirect(w, r, pages.InvoiceURL(id))
@@ -305,14 +311,14 @@ func (s *Server) post(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	if err := s.Posting.Post(r.Context(), DemoOrganization, id, actor(r)); err != nil {
-		i, loadErr := s.Documents.Get(r.Context(), DemoOrganization, id, false)
+	if err := s.Posting.Post(r.Context(), organizationID(r), id, actor(r)); err != nil {
+		i, loadErr := s.Documents.Get(r.Context(), organizationID(r), id, false)
 		if loadErr != nil {
 			s.fail(w, r, loadErr)
 			return
 		}
 		s.Logger.Warn("posting rejected", "error", err, "invoice_id", id)
-		s.render(w, r, pages.Review(i, csrf(r), safeMessage(err)))
+		s.render(w, r, pages.Review(i, csrf(r), safeMessage(err), organizationName(r)))
 		return
 	}
 	s.redirect(w, r, pages.InvoiceURL(id))
@@ -323,7 +329,7 @@ func (s *Server) reopen(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	if err := s.DocumentService.Reopen(r.Context(), DemoOrganization, id, actor(r)); err != nil {
+	if err := s.DocumentService.Reopen(r.Context(), organizationID(r), id, actor(r)); err != nil {
 		s.fail(w, r, err)
 		return
 	}
@@ -343,7 +349,7 @@ func (s *Server) document(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	file, err := s.Documents.File(r.Context(), DemoOrganization, id)
+	file, err := s.Documents.File(r.Context(), organizationID(r), id)
 	if err != nil {
 		s.fail(w, r, err)
 		return

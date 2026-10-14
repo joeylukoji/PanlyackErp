@@ -74,11 +74,11 @@ func TestPostgresPostingAtomicAndIdempotent(t *testing.T) {
 	if err := auth.SetOwner(ctx, org, "OWNER@PANLYACK.LOCAL", "correct horse battery staple"); err != nil {
 		t.Fatal(err)
 	}
-	owner, err := auth.Authenticate(ctx, org, "owner@panlyack.local", "correct horse battery staple")
+	owner, err := auth.Authenticate(ctx, "owner@panlyack.local", "correct horse battery staple")
 	if err != nil || owner.OrganizationID != org || owner.Role != "OWNER" {
 		t.Fatalf("owner login: %v", err)
 	}
-	if _, err := auth.Authenticate(ctx, org, owner.Email, "incorrect password"); err == nil {
+	if _, err := auth.Authenticate(ctx, owner.Email, "incorrect password"); err == nil {
 		t.Fatal("invalid password accepted")
 	}
 	token, err := auth.CreateSession(ctx, owner)

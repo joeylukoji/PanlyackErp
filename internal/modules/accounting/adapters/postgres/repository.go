@@ -6,11 +6,43 @@ import (
 	"github.com/google/uuid"
 	"panlyackerp/internal/modules/accounting/ports"
 	"panlyackerp/internal/platform/db"
+	"time"
 )
 
 type Repository struct{ DB db.Store }
 type Posting = ports.Posting
 type JournalRow = ports.JournalRow
+
+func (r Repository) SeedDemo(ctx context.Context, org, sourceID string) error {
+	conn := r.DB.Conn(ctx)
+	_, err := conn.Exec(ctx, `INSERT INTO accounting.accounts(organization_id,role,code,name)
+		SELECT $1,role,code,name FROM (VALUES
+		('CASH','531','Cash'),('BANK','512','Bank'),('MOBILE_MONEY','517','Mobile money'),
+		('CARD','511','Card settlement'),('INVENTORY','37','Merchandise inventory'),
+		('INPUT_TAX','44566','Deductible input tax'),('OUTPUT_TAX','44571','Collected output tax'),
+		('ACCOUNTS_PAYABLE','401','Trade payables'),('ACCOUNTS_RECEIVABLE','411','Trade receivables'),
+		('SALES','707','Merchandise sales'),('COGS','6037','Cost of goods sold'),
+		('EQUITY','101','Opening equity')) AS accounts(role,code,name)`, org)
+	if err != nil {
+		return err
+	}
+	today := time.Now().UTC()
+	// The bundled demo invoice is dated 2026; keep its period open in later years.
+	_, err = conn.Exec(ctx, `INSERT INTO accounting.fiscal_periods(organization_id,year)
+		VALUES($1,2026),($1,$2) ON CONFLICT DO NOTHING`, org, today.Year())
+	if err != nil {
+		return err
+	}
+	entryID := uuid.NewString()
+	_, err = conn.Exec(ctx, `INSERT INTO accounting.journal_entries(organization_id,id,source_type,source_id,reference,entry_date,currency)
+		VALUES($1,$2,'OPENING',$3,'Opening balance',$4,'USD')`, org, entryID, sourceID, today)
+	if err != nil {
+		return err
+	}
+	_, err = conn.Exec(ctx, `INSERT INTO accounting.journal_lines(organization_id,id,entry_id,role,debit,credit) VALUES
+		($1,$2,$3,'CASH',5000,0),($1,$4,$3,'EQUITY',0,5000)`, org, uuid.NewString(), entryID, uuid.NewString())
+	return err
+}
 
 func (r Repository) Post(ctx context.Context, p Posting) error {
 	if err := p.Entry.Validate(); err != nil {

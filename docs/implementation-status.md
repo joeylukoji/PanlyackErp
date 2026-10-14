@@ -14,9 +14,10 @@
 - Dashboard, invoices, inventory, journal and cash screens; responsive layouts; CSRF and local-host gate.
 - Generated sqlc organization query. Other module SQL currently remains explicit parameterized pgx in module-owned adapters.
 - Local owner login, Argon2id password hashing, organization membership check, expiring server-side sessions and revocation on logout or password rotation.
+- Self-service local registration creates an isolated organization, owner, session, accounting chart, fiscal period, cash accounts and synthetic opening balance in one transaction.
 
 ## Blueprint work still pending
-- Production identity: multi-user roles, invitations, password recovery, rate limits, HTTPS cookies and deployment hardening.
+- Production identity: invited teammates, multi-user roles, password recovery, rate limits, HTTPS cookies and deployment hardening.
 - Real vision model runtime verification; OCR quality assessment, field-level extraction confidence UX and extraction retry queue.
 - Independent product/category/warehouse CRUD, manual inventory adjustments, returns and losses.
 - User-configurable organization/valuation policy and US chart of accounts; fiscal-year management UI.

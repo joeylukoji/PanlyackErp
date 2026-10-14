@@ -19,6 +19,7 @@ import (
 	"panlyackerp/internal/platform/db"
 	"panlyackerp/internal/web"
 	"panlyackerp/internal/workflows/invoiceposting"
+	"panlyackerp/internal/workflows/registration"
 	"time"
 )
 
@@ -30,9 +31,11 @@ func New(cfg config.Config, pool *pgxpool.Pool, logger *slog.Logger) *web.Server
 	money := cash.Repository{DB: store}
 	reports := reporting.Repository{DB: store}
 	log := audit.Log{DB: store}
+	auth := identity.AuthRepository{DB: store}
 	storage := local.Storage{Root: cfg.StoragePath}
 	return &web.Server{
-		Config: cfg, Pool: pool, Logger: logger, Auth: identity.AuthRepository{DB: store}, Documents: docs, Storage: storage, Inventory: inv, Accounting: accounts, Cash: money, Reporting: reports,
+		Config: cfg, Pool: pool, Logger: logger, Auth: auth, Documents: docs, Storage: storage, Inventory: inv, Accounting: accounts, Cash: money, Reporting: reports,
+		Registration:    registration.Service{UOW: store, Identity: auth, Cash: money, Accounting: accounts, Reporting: reports},
 		DocumentService: docapp.Service{Repository: docs, Storage: storage, Extractor: ai.Client{HTTP: &http.Client{Timeout: 100 * time.Second}, BaseURL: cfg.AIURL, Key: cfg.AIKey}, UOW: store, Audit: log},
 		Posting:         invoiceposting.Service{UOW: store, Documents: docs, Identity: identity.Repository{DB: store}, Inventory: inventoryapp.Service{Repository: inv}, Accounting: accounts, Cash: money, Reporting: reports, Audit: log},
 	}

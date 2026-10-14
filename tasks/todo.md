@@ -9,5 +9,6 @@
 - [x] Rasterize bounded PDFs for the vision adapter; test multi-page images with a mock model.
 - [ ] Exercise extraction with an installed vision model.
 - [x] Local owner login, membership check, session revocation and protected pages.
+- [x] Self-service test registration with isolated organization and complete demo provisioning.
 - [ ] Production multi-user identity, authorization and operational hardening.
 - [ ] Finish broader blueprint capabilities listed in docs/implementation-status.md.

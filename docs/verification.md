@@ -22,6 +22,10 @@ Environment: Windows, Go 1.26.4, Python 3.13.5, PostgreSQL 17 in Docker. Contain
 - Updated desktop and mobile screens: login, dashboard and invoice review inspected at 1440px and 390px, with no document-wide horizontal overflow.
 - New responsive navigation and images inspected at 1440px, 390px and 320px. The mobile drawer opens, closes from its backdrop, and all five navigation links reach their page; the dashboard import action reaches the upload page. A fresh browser session after restart had no warnings or errors.
 - Impeccable mechanical detector reported no findings for the changed templ and CSS files.
+- Registration: isolated PostgreSQL integration created two organizations and verified independent sessions, 12 accounting roles, open period, balanced opening journal, cash accounts, duplicate-email rollback and no cross-organization summary changes.
+- Browser: a new local test account registered, imported the synthetic PNG, confirmed and posted it, viewed stock 537.40 USD and cash 4462.60 USD, then logged out and back into the same organization. Registration layout was inspected at 1440px and 390px without page overflow.
+- Four user-supplied images load as local assets on authentication, dashboard, invoice import and accounting. Login, dashboard, import and journal were visually inspected at desktop width; registration, dashboard, import and journal were inspected at 390px with no document-wide horizontal overflow. The local registration form still creates a working session.
+- After the image changes, templ generation, Tailwind CSS build, `go vet ./...`, PostgreSQL registration/posting integration tests and the Impeccable detector passed; the detector returned no findings.
 
 ## Limits
 - Real Ollama model extraction not exercised; adapter must be tested with the chosen installed model.
@@ -29,5 +33,5 @@ Environment: Windows, Go 1.26.4, Python 3.13.5, PostgreSQL 17 in Docker. Contain
 - Full Docker image build, Go 1.27 runtime, race detector and dependency vulnerability audit are not yet verified.
 - The AI image build was attempted but stopped after its dependency download stalled; the new PDF packages installed and passed tests in the local Python environment.
 - Graphify output covers an earlier implementation snapshot. Its health report retains dangling references and collapsed edges; use it for navigation, not proof of correctness or completeness.
-- This is a local demo with an owner login, not production-ready authentication. Rate limits, multi-user roles, password recovery and HTTPS deployment remain pending.
+- This is a local demo with self-service owner registration, not production-ready authentication. Rate limits, invited teammates, password recovery and HTTPS deployment remain pending.
 - Python tests pass with one upstream Starlette TestClient deprecation warning about httpx.

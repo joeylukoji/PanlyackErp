@@ -100,7 +100,7 @@
  .activity-list dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
  .dashboard-workflow { position: relative; display: flex; align-items: end; overflow: hidden; min-height: 235px; border-radius: 13px; background: #172e34; color: white; isolation: isolate; }
  .dashboard-workflow::after { position: absolute; inset: 0; z-index: -1; background: linear-gradient(0deg,rgba(7,27,37,.94),rgba(7,27,37,.3) 85%); content: ""; }
- .dashboard-workflow img { position: absolute; inset: 0; z-index: -2; width: 100%; height: 100%; object-fit: cover; object-position: 60% center; transition: transform .6s cubic-bezier(.16,1,.3,1); }
+ .dashboard-workflow img { position: absolute; inset: 0; z-index: -2; width: 100%; height: 100%; object-fit: cover; object-position: center 55%; transition: transform .6s cubic-bezier(.16,1,.3,1); }
  .dashboard-workflow:hover img { transform: scale(1.04); }
  .dashboard-workflow-content { padding: 25px; }
  .dashboard-workflow h2 { max-width: 18ch; margin: 0 0 8px; color: white; font-size: 1.35rem; line-height: 1.18; }
@@ -137,9 +137,21 @@
  .line-table button { min-height: 39px; padding: 7px 10px; font-size: .83rem; }
  .review-panel .table-scroll { margin: 0 -26px; padding: 0 18px; }
  .review-panel .table-scroll + button { margin-top: 13px; }
- .upload-panel { max-width: 760px; }
+ .upload-layout { display: grid; grid-template-columns: minmax(0,1.15fr) minmax(280px,.85fr); gap: 20px; align-items: stretch; }
+ .upload-panel { min-width: 0; }
  .upload-panel .panel-body { padding: 33px; }
  .upload-panel form > p { margin: 11px 0 0; font-size: .87rem; }
+ .upload-visual, .accounting-visual { position: relative; display: flex; align-items: end; overflow: hidden; border-radius: 13px; background: #15191b; color: white; isolation: isolate; }
+ .upload-visual { min-height: 350px; }
+ .upload-visual img, .accounting-visual img { position: absolute; inset: 0; z-index: -2; width: 100%; height: 100%; object-fit: cover; }
+ .upload-visual img { object-position: 58% center; }
+ .upload-visual::after, .accounting-visual::after { position: absolute; inset: 0; z-index: -1; content: ""; background: linear-gradient(0deg,rgba(5,13,19,.9),transparent 82%); }
+ .upload-visual > div, .accounting-visual > div { padding: 26px; }
+ .upload-visual h2, .accounting-visual h2 { margin: 0 0 7px; color: white; font-size: 1.24rem; }
+ .upload-visual p, .accounting-visual p { max-width: 40ch; margin: 0; color: #f0f3f4; font-size: .84rem; }
+ .accounting-visual { min-height: 150px; margin-bottom: 18px; }
+ .accounting-visual img { object-position: center 49%; }
+ .accounting-visual::after { background: linear-gradient(90deg,rgba(9,13,17,.94),rgba(9,13,17,.08) 85%); }
  .htmx-indicator { display: none; }
  .htmx-request .htmx-indicator { display: inline; }
  .htmx-request button { opacity: .6; pointer-events: none; }
@@ -156,22 +168,25 @@
  .auth-form-inner form label:not(:first-child) { margin-top: 21px; }
  .auth-form-inner form input, .auth-form-inner form button { min-height: 47px; }
  .auth-form-inner form button { margin-top: 29px; }
+ .auth-field-help { margin: 7px 0 -8px !important; color: #62636b; font-size: .79rem; }
  .auth-help { margin-top: 22px !important; color: #5d7474; font-size: .84rem; }
- .auth-story { position: relative; overflow: hidden; padding: 55px; background: #173b3b; color: #e9f5f0; isolation: isolate; }
- .auth-story::after { position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg,rgba(9,37,37,.54),rgba(9,37,37,.19) 55%,rgba(9,37,37,.86)); content: ""; }
+ .auth-help a { display: inline-block; white-space: nowrap; }
+ .auth-story { position: relative; overflow: hidden; padding: 55px; background: #203c70; color: #f6f3fa; isolation: isolate; }
+ .auth-story::after { position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg,rgba(14,29,61,.68),rgba(14,29,61,.13) 55%,rgba(14,29,61,.85)); content: ""; }
  .auth-story-photo { position: absolute; inset: 0; z-index: -2; width: 100%; height: 100%; object-fit: cover; object-position: center; animation: photo-settle 1.2s cubic-bezier(.16,1,.3,1) both; }
  .auth-story-inner { position: relative; width: min(100%,490px); }
  .auth-story-mark { display: grid; place-items: center; width: 72px; height: 72px; margin-bottom: 63px; border-radius: 22px; background: #b8e2cc; color: #153832; font-size: 2.1rem; font-weight: 800; }
  .auth-story h2 { max-width: 12ch; margin-bottom: 23px; color: white; font-size: clamp(2.4rem,3.9vw,3.8rem); line-height: 1.05; letter-spacing: -.035em; }
- .auth-story p { max-width: 42ch; color: #c7e1d9; font-size: 1.02rem; }
+ .auth-story p { max-width: 42ch; color: #f1e7f2; font-size: 1.02rem; }
  .auth-steps { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 40px; }
- .auth-steps span { padding: 9px 12px; border: 1px solid #688d84; border-radius: 7px; color: #ecfff5; font-size: .83rem; font-weight: 650; }
- .auth-footnote { display: block; margin-top: 75px; color: #b9d3cb; font-size: .79rem; }
+ .auth-steps span { padding: 9px 12px; border: 1px solid rgba(255,255,255,.55); border-radius: 7px; color: white; font-size: .83rem; font-weight: 650; }
+ .auth-footnote { display: block; margin-top: 75px; color: #e2deed; font-size: .79rem; }
  @keyframes photo-settle { from { transform: scale(1.045); } to { transform: scale(1); } }
  .logout-card { width: min(100% - 32px,500px); margin: min(23vh,180px) auto; padding: 35px; border: 1px solid #dce5e2; border-radius: 13px; background: white; }
  .logout-card form { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 27px; }
  @media(max-width:1150px) { .review-grid { grid-template-columns: 1fr; } .document-panel { position: static; } .preview { min-height: 310px; max-height: 380px; } .metrics { grid-template-columns: repeat(2,1fr); } .dashboard-overview { grid-template-columns: 1fr; } .dashboard-workflow { min-height: 210px; } }
- @media(max-width:820px) { .auth-shell { grid-template-columns: 1fr; } .auth-form-side { padding: 45px 25px 60px; } .auth-brand { margin-bottom: 46px; } .auth-story { order: -1; min-height: 205px; padding: 28px 25px; } .auth-story-inner { width: min(100%,620px); } .auth-story-mark, .auth-story p, .auth-steps, .auth-footnote { display: none; } .auth-story h2 { max-width: 24ch; margin: 0; font-size: clamp(1.65rem,5vw,2.2rem); } .auth-story-photo { object-position: center 55%; } }
+ @media(max-width:960px) { .upload-layout { grid-template-columns: 1fr; } .upload-visual { min-height: 250px; } }
+ @media(max-width:820px) { .auth-shell { grid-template-columns: 1fr; } .auth-form-side { padding: 45px 25px 60px; } .auth-brand { margin-bottom: 46px; } .auth-story { order: -1; min-height: 205px; padding: 28px 25px; } .auth-story-inner { width: min(100%,620px); } .auth-story-mark, .auth-story p, .auth-steps, .auth-footnote { display: none; } .auth-story h2 { max-width: 24ch; margin: 0; font-size: clamp(1.65rem,5vw,2.2rem); } .auth-story-photo { object-position: center 42%; } }
  @media(max-width:760px) {
   .shell { display: block; }
   .sidebar { position: sticky; z-index: 40; height: auto; min-height: 61px; padding: 10px 16px; border-right: 0; border-bottom: 1px solid #e8e8eb; }
@@ -207,6 +222,8 @@
   .panel-body { padding: 20px; }
   .review-panel .table-scroll { margin: 0 -20px; padding: 0 12px; }
   .upload-panel .panel-body { padding: 23px; }
+  .upload-visual { min-height: 220px; }
+  .accounting-visual { min-height: 165px; }
  }
  @media(max-width:480px) { .metrics { grid-template-columns: 1fr 1fr; gap: 9px; } .metric dd { font-size: 1.23rem; white-space: normal; } .metric small { display: block; margin-top: 2px; font-size: .7rem; } .dashboard-section-heading { flex-wrap: wrap; } .dashboard-recent th:nth-child(2), .dashboard-recent td:nth-child(2), .dashboard-recent th:nth-child(3), .dashboard-recent td:nth-child(3) { display: none; } .dashboard-recent th, .dashboard-recent td { padding: 12px 8px; font-size: .76rem; } .dashboard-recent .badge { padding: 4px 6px; font-size: .7rem; } }
  @media(prefers-reduced-motion:reduce) { html { scroll-behavior: auto; } button, .button, .sidebar nav a, .sidebar nav, .dashboard-actions a, .dashboard-workflow img { transition: none; } .auth-story-photo { animation: none; } }

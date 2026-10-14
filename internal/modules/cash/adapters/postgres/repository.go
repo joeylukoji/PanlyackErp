@@ -15,6 +15,17 @@ type Command = ports.Command
 type Account = ports.Account
 type Movement = ports.Movement
 
+func (r Repository) SeedDemo(ctx context.Context, org, sourceID string) error {
+	_, err := r.DB.Conn(ctx).Exec(ctx, `INSERT INTO cash.accounts(organization_id,method,balance) VALUES
+		($1,'CASH',5000),($1,'BANK',0),($1,'MOBILE_MONEY',0),($1,'CARD',0)`, org)
+	if err != nil {
+		return err
+	}
+	_, err = r.DB.Conn(ctx).Exec(ctx, `INSERT INTO cash.movements(organization_id,id,method,amount,source_type,source_id)
+		VALUES($1,$2,'CASH',5000,'OPENING',$3)`, org, uuid.NewString(), sourceID)
+	return err
+}
+
 func (r Repository) Record(ctx context.Context, c Command) error {
 	for _, payment := range c.Payments {
 		if payment.Amount.IsZero() {

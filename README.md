@@ -4,7 +4,7 @@ A local ERP MVP that turns a reviewed invoice into inventory, journal and cash o
 
 Go + Chi · templ + HTMX + Tailwind · PostgreSQL · FastAPI
 
-**Status:** the complete purchase invoice demo flow runs behind a local owner login. This is a single-organization MVP, not a production SaaS release. The broader blueprint includes capabilities still outside this delivery; see [implementation status](docs/implementation-status.md).
+**Status:** the complete purchase invoice demo flow supports self-service local test accounts. Each registration creates an isolated organization with its own opening balances. This is not a production SaaS release. The broader blueprint includes capabilities still outside this delivery; see [implementation status](docs/implementation-status.md).
 
 ## Quick start with Docker
 
@@ -16,7 +16,7 @@ Go + Chi · templ + HTMX + Tailwind · PostgreSQL · FastAPI
 docker compose --env-file .env -f deployments/compose.yaml up --build -d
 ```
 
-Create the first owner account from PowerShell, then open http://127.0.0.1:8080/login:
+Open http://127.0.0.1:8080/register to create an isolated test account. To retain the pre-seeded Panlyack Trading workspace, create its first owner account from PowerShell and then sign in at http://127.0.0.1:8080/login:
 
 ```powershell
 ./scripts/create-owner-docker.ps1
@@ -36,7 +36,7 @@ python -m venv .venv
 ./scripts/create-owner.ps1
 ```
 
-The start script loads `.env`, applies migrations, builds Go, and starts Go/FastAPI in hidden background processes. It writes process IDs and logs under `var/`. The owner script prompts for an email/password and can be rerun to rotate the password and revoke old sessions. Open http://127.0.0.1:8080/login. Stop the local services with `./scripts/stop-local.ps1`.
+The start script loads `.env`, applies migrations, builds Go, and starts Go/FastAPI in hidden background processes. It writes process IDs and logs under `var/`. Open http://127.0.0.1:8080/register to create a test workspace; no owner script is needed for this path. The owner script remains available for the pre-seeded Panlyack Trading workspace and can rotate its password and revoke old sessions. Stop the local services with `./scripts/stop-local.ps1`.
 
 For a foreground Go development process after starting the AI service, use `./scripts/dev.ps1`.
 
@@ -46,7 +46,7 @@ For a foreground Go development process after starting the AI service, use `./sc
 2. The default `EXTRACTOR_MODE=demo` returns a clearly labeled fixed 14-line invoice. It does **not** inspect the uploaded document.
 3. Correct the supplier, quantities, prices, taxes or payment amounts. Add/remove lines when needed. The total must equal the exact sum of lines and tax.
 4. Choose **Confirmer les données**, then **Comptabiliser la facture**.
-5. Open stock, accounting, cash and dashboard screens. Starting cash 5,000 USD and stock 2,000 USD become **4,462.60 USD** and **2,537.40 USD**.
+5. Open stock, accounting, cash and dashboard screens. A newly registered workspace starts with 5,000 USD cash and no stock; after posting it has **4,462.60 USD cash** and **537.40 USD stock**. The pre-seeded Panlyack Trading workspace includes 2,000 USD opening stock and therefore reaches **2,537.40 USD stock**.
 
 Repeated posting of the same invoice returns success without duplicate effects. Re-uploading a file creates another draft: file hashes are retained for traceability, not used as business-level duplicate invoice detection.
 
@@ -107,8 +107,8 @@ graphify-out/             generated architecture graph, with coverage caveats
 
 ## Important boundaries
 
-- Organization scope is explicit in business queries. The local UI currently uses one seeded organization and one owner role.
-- The owner account belongs to the seeded organization. Private pages and the dashboard API require a server-side session. Passwords are hashed with Argon2id and session tokens are stored as hashes. This local release still refuses production mode; multi-user roles, password recovery and HTTPS deployment are pending.
+- Organization scope comes from the authenticated session in every business request. Each self-service registration creates one isolated organization and one owner account; the original seeded organization remains available through the owner script.
+- Private pages and the dashboard API require a server-side session. Passwords are hashed with Argon2id and session tokens are stored as hashes. Registration provisions cash, accounting and reporting data atomically, including a 5,000 USD synthetic opening balance. This local release still refuses production mode; invited teammates, role permissions, password recovery, rate limits and HTTPS deployment are pending.
 - Production mode refuses startup. Do not expose these local-demo ports through a tunnel or a public reverse proxy.
 - Financial amounts use decimal strings and `shopspring/decimal`; quantities have six decimal places, money four. UI amounts display two places; stored amounts retain four.
 - The seeded fiscal year is 2026. Missing or closed fiscal periods reject posting.

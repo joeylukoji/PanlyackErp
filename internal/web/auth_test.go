@@ -15,7 +15,10 @@ type fakeAuth struct {
 	err     error
 }
 
-func (a fakeAuth) Authenticate(context.Context, string, string, string) (identity.Session, error) {
+func (a fakeAuth) Authenticate(context.Context, string, string) (identity.Session, error) {
+	return a.session, a.err
+}
+func (a fakeAuth) Register(context.Context, string, string, string, string) (identity.Session, error) {
 	return a.session, a.err
 }
 func (a fakeAuth) CreateSession(context.Context, identity.Session) (string, error) {
@@ -33,9 +36,10 @@ func TestPrivateRouteRequiresOrganizationMembership(t *testing.T) {
 	}{
 		{name: "missing session", want: 303},
 		{name: "invalid session", auth: fakeAuth{err: pgx.ErrNoRows}, cookie: true, want: 303},
-		{name: "wrong organization", auth: fakeAuth{session: identity.Session{OrganizationID: "other", Role: "OWNER"}}, cookie: true, want: 403},
+		{name: "missing organization", auth: fakeAuth{session: identity.Session{Role: "OWNER"}}, cookie: true, want: 403},
 		{name: "no owner membership", auth: fakeAuth{session: identity.Session{OrganizationID: DemoOrganization, Role: "VIEWER"}}, cookie: true, want: 403},
 		{name: "owner", auth: fakeAuth{session: identity.Session{UserID: "user-id", OrganizationID: DemoOrganization, Role: "OWNER"}}, cookie: true, want: 204},
+		{name: "registered organization", auth: fakeAuth{session: identity.Session{UserID: "user-id", OrganizationID: "new-workspace", Role: "OWNER"}}, cookie: true, want: 204},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			server := Server{Auth: tc.auth}

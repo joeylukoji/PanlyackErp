@@ -84,6 +84,6 @@ func (s *Server) logRequest(next http.Handler) http.Handler {
 		start := time.Now()
 		ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
 		next.ServeHTTP(ww, r)
-		s.Logger.Info("http request", "method", r.Method, "path", r.URL.Path, "status", ww.Status(), "duration", time.Since(start), "request_id", middleware.GetReqID(r.Context()), "organization_id", DemoOrganization)
+		s.Logger.Info("http request", "method", r.Method, "path", r.URL.Path, "status", ww.Status(), "duration", time.Since(start), "request_id", middleware.GetReqID(r.Context()))
 	})
 }

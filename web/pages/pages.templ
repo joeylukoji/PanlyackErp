@@ -18,19 +18,30 @@ func InvoiceURL(id string) string { return "/app/invoices/"+id }
 templ Login(csrf,message string) {
 <!DOCTYPE html>
 <html lang="fr"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Connexion · PanlyackERP</title><link rel="stylesheet" href="/static/app.css"/></head>
-<body class="auth-page"><main class="auth-shell"><section class="auth-form-side"><div class="auth-form-inner"><div class="auth-brand"><span class="brand-mark" aria-hidden="true">P</span><span>PanlyackERP</span></div><h1>Retrouvez vos opérations.</h1><p class="muted">Connectez-vous à l’espace de travail de Panlyack Trading.</p>
+<body class="auth-page"><main class="auth-shell"><section class="auth-form-side"><div class="auth-form-inner"><div class="auth-brand"><span class="brand-mark" aria-hidden="true">P</span><span>PanlyackERP</span></div><h1>Retrouvez vos opérations.</h1><p class="muted">Connectez-vous à l’espace de travail de votre entreprise.</p>
 if message!="" {
 <div class="notice error" role="alert">{ message }</div>
 }
-<form method="post" action="/login"><input type="hidden" name="csrf" value={ csrf }/><label for="email">Adresse e-mail</label><input id="email" name="email" type="email" autocomplete="username" required maxlength="254"/><label for="password">Mot de passe</label><input id="password" name="password" type="password" autocomplete="current-password" required minlength="12" maxlength="128"/><button type="submit">Se connecter</button></form><p class="auth-help">Accès créé localement par l’administrateur du projet.</p></div></section>
-<aside class="auth-story"><img class="auth-story-photo" src="/static/login-workspace.jpg" alt=""/><div class="auth-story-inner"><div class="auth-story-mark" aria-hidden="true">P</div><h2>Du document aux comptes, sans perdre le fil.</h2><p>Importez une facture, vérifiez les données, puis consultez ses effets sur le stock, le journal et la trésorerie.</p><div class="auth-steps"><span>Importer</span><span>Vérifier</span><span>Comptabiliser</span></div><span class="auth-footnote">PanlyackERP · Espace de démonstration local</span></div></aside></main></body></html>
+<form method="post" action="/login"><input type="hidden" name="csrf" value={ csrf }/><label for="email">Adresse e-mail</label><input id="email" name="email" type="email" autocomplete="username" required maxlength="254"/><label for="password">Mot de passe</label><input id="password" name="password" type="password" autocomplete="current-password" required minlength="12" maxlength="128"/><button type="submit">Se connecter</button></form><p class="auth-help">Vous découvrez PanlyackERP ? <a href="/register">Créer un compte de test</a></p></div></section>
+<aside class="auth-story"><img class="auth-story-photo" src="/static/auth-handoff.webp" alt=""/><div class="auth-story-inner"><div class="auth-story-mark" aria-hidden="true">P</div><h2>Du document aux comptes, sans perdre le fil.</h2><p>Importez une facture, vérifiez les données, puis consultez ses effets sur le stock, le journal et la trésorerie.</p><div class="auth-steps"><span>Importer</span><span>Vérifier</span><span>Comptabiliser</span></div><span class="auth-footnote">PanlyackERP · Espace de démonstration local</span></div></aside></main></body></html>
+}
+
+templ Register(csrf,message string) {
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Créer un compte · PanlyackERP</title><link rel="stylesheet" href="/static/app.css"/></head>
+<body class="auth-page"><main class="auth-shell"><section class="auth-form-side"><div class="auth-form-inner"><div class="auth-brand"><span class="brand-mark" aria-hidden="true">P</span><span>PanlyackERP</span></div><h1>Créez votre espace de test.</h1><p class="muted">Votre entreprise dispose de ses propres factures, stocks, comptes et soldes de démonstration.</p>
+if message!="" {
+<div class="notice error" role="alert">{ message }</div>
+}
+<form method="post" action="/register"><input type="hidden" name="csrf" value={ csrf }/><label for="organization_name">Nom de votre entreprise</label><input id="organization_name" name="organization_name" autocomplete="organization" required minlength="2" maxlength="80"/><label for="email">Adresse e-mail</label><input id="email" name="email" type="email" autocomplete="email" required maxlength="254"/><label for="password">Mot de passe</label><input id="password" name="password" type="password" autocomplete="new-password" required minlength="12" maxlength="128"/><p class="auth-field-help">12 caractères minimum.</p><label for="password_confirm">Confirmer le mot de passe</label><input id="password_confirm" name="password_confirm" type="password" autocomplete="new-password" required minlength="12" maxlength="128"/><button type="submit">Créer mon espace</button></form><p class="auth-help">Vous avez déjà un compte ? <a href="/login">Se connecter</a></p></div></section>
+<aside class="auth-story"><img class="auth-story-photo" src="/static/auth-handoff.webp" alt=""/><div class="auth-story-inner"><div class="auth-story-mark" aria-hidden="true">P</div><h2>Essayez le parcours complet.</h2><p>Importez une facture, confirmez ses données, puis voyez les effets sur le stock, la comptabilité et la trésorerie.</p><div class="auth-steps"><span>Importer</span><span>Vérifier</span><span>Comptabiliser</span></div><span class="auth-footnote">PanlyackERP · Espace de démonstration local</span></div></aside></main></body></html>
 }
 
 templ Logout(csrf string) {
 <!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Déconnexion · PanlyackERP</title><link rel="stylesheet" href="/static/app.css"/></head><body class="auth-page"><main class="logout-card"><h1>Quitter l’espace de travail ?</h1><p class="muted">Votre session sera fermée sur ce navigateur.</p><form method="post" action="/logout"><input type="hidden" name="csrf" value={ csrf }/><button type="submit">Se déconnecter</button><a class="secondary button" href="/app/dashboard">Retour au tableau de bord</a></form></main></body></html>
 }
 
-templ Layout(title,active string) {
+templ Layout(title,active,orgName string) {
  <!DOCTYPE html>
  <html lang="fr"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>{ title } · PanlyackERP</title><link rel="stylesheet" href="/static/app.css"/><script src="/static/htmx.min.js" defer></script><meta name="htmx-config" content="{&quot;allowEval&quot;:false,&quot;allowScriptTags&quot;:false}"/></head>
  <body><a class="skip" href="#main">Aller au contenu</a><div class="shell"><input class="nav-toggle" id="nav-toggle" type="checkbox" aria-label="Afficher le menu de navigation"/><label class="nav-scrim" for="nav-toggle" aria-hidden="true"></label>
@@ -38,8 +49,8 @@ templ Layout(title,active string) {
  for _,item:=range []struct{Path,Label string}{{"dashboard","Vue d’ensemble"},{"invoices","Factures"},{"inventory","Stock"},{"accounting","Comptabilité"},{"cash","Trésorerie"}} {
   <a href={ templ.SafeURL("/app/"+item.Path) } aria-current={ activePage(active,item.Path) }><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href={ templ.SafeURL("/static/nav-icons.svg#"+item.Path) }></use></svg><span>{ item.Label }</span></a>
  }
- </nav><div class="workspace"><span class="workspace-avatar" aria-hidden="true">PT</span><span class="workspace-copy"><span class="workspace-name">Panlyack Trading</span><span>Édition locale · démonstration</span></span></div></aside>
- <div class="main-column"><header class="topbar"><span class="organization-name">{ title }</span><span class="topbar-right"><span class="org-meta">Panlyack Trading <span aria-hidden="true">·</span> USD</span><a class="logout-link" href="/logout">Déconnexion</a></span></header><main id="main" class="content">{ children... }</main></div>
+ </nav><div class="workspace"><span class="workspace-avatar" aria-hidden="true">P</span><span class="workspace-copy"><span class="workspace-name">{ orgName }</span><span>Édition locale · démonstration</span></span></div></aside>
+ <div class="main-column"><header class="topbar"><span class="organization-name">{ title }</span><span class="topbar-right"><span class="org-meta">{ orgName } <span aria-hidden="true">·</span> USD</span><a class="logout-link" href="/logout">Déconnexion</a></span></header><main id="main" class="content">{ children... }</main></div>
  </div></body></html>
 }
 
@@ -61,13 +72,13 @@ templ KPI(s reporting.Summary) {
  </dl>
 }
 
-templ Dashboard(s reporting.Summary,invoices []documents.Invoice) {
- @Layout("Vue d’ensemble","dashboard") {
+templ Dashboard(s reporting.Summary,invoices []documents.Invoice,orgName string) {
+ @Layout("Vue d’ensemble","dashboard",orgName) {
  <div class="dashboard-heading"><div><h1>Vue d’ensemble</h1><p>Vos documents et leurs effets sur l’activité, en un coup d’œil.</p></div><a class="button dashboard-primary" href="/app/invoices/new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Importer une facture</a></div>
  <nav class="dashboard-actions" aria-label="Accès rapides"><a href="/app/invoices">Toutes les factures</a><a href="/app/inventory">Consulter le stock</a><a href="/app/accounting">Journal comptable</a><a href="/app/cash">Trésorerie</a></nav>
  @KPI(s)
  <div class="dashboard-overview"><section class="panel activity-panel"><div class="panel-body"><div class="dashboard-section-heading"><div><h2>Situation de l’activité</h2><p>Soldes issus des factures comptabilisées</p></div><a href="/app/accounting">Voir le journal</a></div><dl class="activity-list"><div><dt>Achats</dt><dd>{ Money(s.Purchases) } USD</dd></div><div><dt>Créances clients</dt><dd>{ Money(s.Receivables) } USD</dd></div><div><dt>Coût des ventes</dt><dd>{ Money(s.Cost) } USD</dd></div><div><dt>Dettes fournisseurs</dt><dd>{ Money(s.Payables) } USD</dd></div></dl></div></section>
- <section class="dashboard-workflow"><img src="/static/dashboard-workspace.jpg" alt=""/><div class="dashboard-workflow-content"><h2>Chaque opération part d’un document.</h2><p>Importez, vérifiez puis comptabilisez. Les soldes se mettent à jour après validation.</p><a href="/app/invoices/new">Commencer avec une facture <span aria-hidden="true">→</span></a></div></section></div>
+ <section class="dashboard-workflow"><img src="/static/dashboard-growth.jpg" alt=""/><div class="dashboard-workflow-content"><h2>Chaque opération part d’un document.</h2><p>Importez, vérifiez puis comptabilisez. Les soldes se mettent à jour après validation.</p><a href="/app/invoices/new">Commencer avec une facture <span aria-hidden="true">→</span></a></div></section></div>
  <section class="dashboard-recent"><div class="dashboard-section-heading"><div><h2>Factures récentes</h2><p>Ouvrez un document pour consulter son état et ses lignes.</p></div><a href="/app/invoices">Voir toutes les factures</a></div>@InvoiceTable(invoices)</section>
  }
 }
@@ -87,31 +98,31 @@ templ InvoiceTable(invoices []documents.Invoice) {
  </div>
 }
 
-templ Invoices(invoices []documents.Invoice) {
-@Layout("Factures","invoices") {
+templ Invoices(invoices []documents.Invoice,orgName string) {
+@Layout("Factures","invoices",orgName) {
 @Heading("Factures","Chaque opération conserve son document d’origine.") {
 <a class="button" href="/app/invoices/new">Importer une facture</a>
 } @InvoiceTable(invoices)
 }
 }
 
-templ Upload(csrf,message string) {
- @Layout("Importer une facture","invoices") {
+templ Upload(csrf,message,orgName string) {
+ @Layout("Importer une facture","invoices",orgName) {
 @Heading("Importer une facture","Ajoutez une photo nette ou un PDF. Vous vérifierez les données avant toute opération.") {
 }
- <div class="panel upload-panel"><div class="panel-body">
+ <div class="upload-layout"><div class="panel upload-panel"><div class="panel-body">
  if message!="" {
 <div class="notice error" role="alert">{ message }</div>
 }
  <form method="post" action="/app/invoices/upload" enctype="multipart/form-data" hx-post="/app/invoices/upload" hx-encoding="multipart/form-data" hx-target="body" hx-disabled-elt="find button">
  <input type="hidden" name="csrf" value={ csrf }/><label for="document">Document de la facture</label><input id="document" type="file" name="document" accept="image/png,image/jpeg,application/pdf" required/><p class="muted">PNG, JPEG ou PDF · 10 Mo maximum. En mode vision : PDF de 1 à 5 pages.</p>
  <div class="actions"><button type="submit">Extraire les données</button><span class="htmx-indicator" role="status">Analyse en cours…</span></div>
- </form></div></div>
+ </form></div></div><aside class="upload-visual"><img src="/static/extraction-review.jpg" alt=""/><div><h2>L’analyse ouvre le travail.</h2><p>Relisez les données extraites et confirmez chaque facture avant sa comptabilisation.</p></div></aside></div>
 }
 }
 
-templ Review(i documents.Invoice,csrf,message string) {
- @Layout("Vérifier la facture","invoices") {
+templ Review(i documents.Invoice,csrf,message,orgName string) {
+ @Layout("Vérifier la facture","invoices",orgName) {
  @Heading(i.Number,"Vérifiez le document et les données avant de comptabiliser.") {
 <span class={ statusClass(i.Status) }>{ Status(i.Status) }</span>
 }
@@ -184,8 +195,8 @@ func paymentLabel(method string) string { return map[string]string{"CASH":"Espè
 func paymentAmount(i documents.Invoice,method string)string { for _,p:=range i.Payments {if p.Method==method{return p.Amount}};return "0" }
 func statusClass(status string) string { if status=="NEEDS_REVIEW" { return "badge review" }; if status=="CONFIRMED" { return "badge confirmed" }; return "badge" }
 
-templ Inventory(products []inventory.Product) {
-@Layout("Stock","inventory") {
+templ Inventory(products []inventory.Product,orgName string) {
+@Layout("Stock","inventory",orgName) {
 @Heading("Stock","Quantités disponibles et valeur comptable des marchandises.") {
 } <div class="panel table-scroll"><table><thead><tr><th>SKU</th><th>Produit</th><th>Unité</th><th class="amount">Disponible</th><th class="amount">Valeur USD</th></tr></thead><tbody>
 for _,p:=range products {
@@ -193,17 +204,17 @@ for _,p:=range products {
 }</tbody></table></div>
 } }
 
-templ Accounting(rows []accounting.JournalRow) {
-@Layout("Comptabilité","accounting") {
+templ Accounting(rows []accounting.JournalRow,orgName string) {
+@Layout("Comptabilité","accounting",orgName) {
 @Heading("Journal comptable","Écritures validées, équilibrées et non modifiables.") {
-} <div class="panel table-scroll"><table><thead><tr><th>Date</th><th>Référence</th><th>Compte</th><th>Libellé</th><th class="amount">Débit USD</th><th class="amount">Crédit USD</th></tr></thead><tbody>
+} <div class="accounting-visual"><img src="/static/accounting-ledger.webp" alt=""/><div><h2>Un journal lisible, opération par opération.</h2><p>Chaque ligne ci-dessous provient d’une écriture validée.</p></div></div><div class="panel table-scroll"><table><thead><tr><th>Date</th><th>Référence</th><th>Compte</th><th>Libellé</th><th class="amount">Débit USD</th><th class="amount">Crédit USD</th></tr></thead><tbody>
 for _,r:=range rows {
 <tr><td>{ r.Date }</td><td>{ r.Reference }</td><td>{ r.Code }</td><td>{ r.Name }</td><td class="amount">{ Money(r.Debit) }</td><td class="amount">{ Money(r.Credit) }</td></tr>
 }</tbody></table></div>
 } }
 
-templ Cash(accounts []cash.Account,movements []cash.Movement) {
-@Layout("Trésorerie","cash") {
+templ Cash(accounts []cash.Account,movements []cash.Movement,orgName string) {
+@Layout("Trésorerie","cash",orgName) {
 @Heading("Trésorerie","Soldes par moyen de paiement et historique des mouvements.") {
 } <dl class="metrics">
 for _,a:=range accounts {

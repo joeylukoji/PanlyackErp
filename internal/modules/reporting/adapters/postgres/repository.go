@@ -13,6 +13,11 @@ type Repository struct{ DB db.Store }
 type Posted = ports.Posted
 type Summary = ports.Summary
 
+func (r Repository) SeedDemo(ctx context.Context, org string) error {
+	_, err := r.DB.Conn(ctx).Exec(ctx, `INSERT INTO reporting.summary(organization_id,cash) VALUES($1,5000)`, org)
+	return err
+}
+
 // Project records the event and its projection in the same transaction.
 func (r Repository) Project(ctx context.Context, event Posted) error {
 	payload, err := json.Marshal(event)
