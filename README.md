@@ -68,7 +68,7 @@ MODEL_NAME=gemma3:4b
 
 Install and serve a vision-capable model separately, then restart FastAPI. In Compose use `http://host.docker.internal:11434` for a host model server. This adapter accepts PNG/JPEG and renders PDFs of 1–5 pages as bounded PNG images before sending them to the model. Model responses are validated by Pydantic and financial values are validated again in Go. Extraction failures never silently fall back to demo data.
 
-**Real model extraction has not been verified against a running model in this workspace.** The PDF rendering path was tested with a mock model response. No model weights were downloaded and no invoice was sent to a third-party model provider.
+Gemma 3 4B is installed locally and a real-image extraction benchmark is available. See [invoice evaluation](docs/invoice-evaluation.md) for the 50-document pilot, reproducible commands and human annotation procedure. Schema-valid output does not establish OCR accuracy. The PDF rendering path was tested with a mock model response; no invoice was sent to a third-party model provider.
 
 ## Tests and generation
 

@@ -31,7 +31,10 @@ Environment: Windows, Go 1.26.4, Python 3.13.5, PostgreSQL 17 in Docker. Contain
 - After the final local restart, the invoice page displayed the precise 437.40 USD balance; a 500 USD overpayment returned a French validation error and left the 437.40 USD payable and 4,900 USD cash unchanged.
 
 ## Limits
-- Real Ollama model extraction not exercised; adapter must be tested with the chosen installed model.
+
+Local extraction evaluation on 2026-10-16: `pytest ai-service/tests -q` passed 10 tests, including deterministic byte-duplicate-free sampling, reference overwrite protection, exact-decimal scoring, unconfirmed-reference exclusion, failed-prediction accounting (including empty reference line lists) and continuing a run after an extraction error. The real Gemma 3 4B baseline attempted all 50 selected scans: 4 schema-valid responses and 46 date-field validation failures. No human reference was confirmed, so field accuracy remains unmeasured. Dataset download was kept stopped, and no ERP data was posted.
+
+- Installed Gemma 3 4B has been exercised with real RVL-CDIP scans through the existing adapter. The 50-document pilot stores successes and failures under `var/evaluations/invoices-50/runs/`; this does not establish extraction accuracy without human-confirmed references. See [evaluation procedure](invoice-evaluation.md).
 - PDF rendering was exercised with generated blank pages and a mocked model response; invoice recognition quality on real PDF documents is unverified.
 - Full Docker image build, Go 1.27 runtime, race detector and dependency vulnerability audit are not yet verified.
 - The AI image build was attempted but stopped after its dependency download stalled; the new PDF packages installed and passed tests in the local Python environment.

@@ -5,6 +5,7 @@
 - Seeded USD organization, FR PCG policy, FIFO and opening balances with balanced opening journal.
 - File type/size checks, generated storage keys, SHA-256, image/PDF preview.
 - Explicit demo extraction; separately configurable Ollama vision adapter with 1–5 page PDF rasterization.
+- Installed Gemma 3 4B exercised through the real adapter; reproducible 50-document local pilot, annotation templates and exact-decimal scoring are available. Schema failures are recorded; extraction accuracy remains unmeasured without human references.
 - Editable invoice header, lines, taxes and split payment amounts; exact total validation.
 - Human confirmation; explicit reopen transition; immutable posted state.
 - Purchase receipt, sale issue, FIFO and AVCO cost allocation; product matching by confirmed SKU.
@@ -20,7 +21,7 @@
 
 ## Blueprint work still pending
 - Production identity: invited teammates, multi-user roles, password recovery, rate limits, HTTPS cookies and deployment hardening.
-- Real vision model runtime verification; OCR quality assessment, field-level extraction confidence UX and extraction retry queue.
+- OCR quality assessment against human references, field-level extraction confidence UX and extraction retry queue. The real-model pilot exposes date-format failures and mislabeled source documents that need review before training.
 - Independent product/category/warehouse CRUD, manual inventory adjustments, returns and losses.
 - User-configurable organization/valuation policy and US chart of accounts; fiscal-year management UI.
 - Bank reconciliation and general expenses.

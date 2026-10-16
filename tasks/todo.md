@@ -7,7 +7,9 @@
 - [x] UI: dashboard, review, inventory, journal, cash and actionable errors.
 - [x] Verification: tests, vet, empty-database migration, browser purchase flow and documentation.
 - [x] Rasterize bounded PDFs for the vision adapter; test multi-page images with a mock model.
-- [ ] Exercise extraction with an installed vision model.
+- [x] Exercise the existing extraction adapter with installed Gemma 3 4B on real local scans; quality still requires human references.
+- [x] Prepare a reproducible 50-document local extraction pilot, annotation templates and scoring tests.
+- [ ] Human-review pilot document types and reference fields before reporting extraction accuracy or training.
 - [x] Local owner login, membership check, session revocation and protected pages.
 - [x] Self-service test registration with isolated organization and complete demo provisioning.
 - [x] Partial settlement of posted invoices, including cash, accounting and reporting effects.
