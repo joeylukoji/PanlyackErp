@@ -1,7 +1,7 @@
 param(
     [string]$Dataset = '',
     [string]$Predictions = '',
-    [ValidateRange(1024, 65535)][int]$Port = 8091
+    [ValidateRange(1024, 65535)][int]$Port = 8093
 )
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot

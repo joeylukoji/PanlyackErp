@@ -6,7 +6,7 @@ services:
       POSTGRES_DB: panlyackerp
       POSTGRES_USER: panlyack
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
-    ports: ["127.0.0.1:55432:5432"]
+    ports: ["127.0.0.1:${POSTGRES_PORT:-55432}:5432"]
     volumes: ["postgres_data:/var/lib/postgresql/data"]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U panlyack -d panlyackerp"]

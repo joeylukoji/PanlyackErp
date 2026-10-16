@@ -279,7 +279,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--dataset', type=Path, required=True)
     parser.add_argument('--predictions', type=Path, required=True)
-    parser.add_argument('--port', type=int, default=8091)
+    parser.add_argument('--port', type=int, default=8093)
     args = parser.parse_args()
     uvicorn.run(create_app(args.dataset, args.predictions), host='127.0.0.1', port=args.port, proxy_headers=False)
 

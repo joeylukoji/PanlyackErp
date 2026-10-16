@@ -38,6 +38,8 @@ python -m venv .venv
 
 The start script loads `.env`, applies migrations, builds Go, and starts Go/FastAPI in hidden background processes. It writes process IDs and logs under `var/`. Open http://127.0.0.1:8080/register to create a test workspace; no owner script is needed for this path. The owner script remains available for the pre-seeded Panlyack Trading workspace and can rotate its password and revoke old sessions. Stop the local services with `./scripts/stop-local.ps1`.
 
+The ERP uses port 8080, extraction uses 8091 and the separate annotation workbench uses 8093. If Windows reserves PostgreSQL's default host port 55432, set `POSTGRES_PORT` to an available port (for example 15432) and use the same port in the local `DATABASE_URL`, then recreate only the Compose PostgreSQL service. Its named data volume is retained.
+
 For a foreground Go development process after starting the AI service, use `./scripts/dev.ps1`.
 
 ## Try the complete flow
@@ -111,7 +113,7 @@ graphify-out/             generated architecture graph, with coverage caveats
 
 ## Important boundaries
 
-For real-scan reference correction, start `./scripts/review-invoices.ps1` and open http://127.0.0.1:8091. See the [local annotation guide](docs/annotation-review.md). This separate tool does not post ERP entries or train the model.
+For real-scan reference correction, start `./scripts/review-invoices.ps1` and open http://127.0.0.1:8093. See the [local annotation guide](docs/annotation-review.md). This separate tool does not post ERP entries or train the model.
 
 - Organization scope comes from the authenticated session in every business request. Each self-service registration creates one isolated organization and one owner account; the original seeded organization remains available through the owner script.
 - Private pages and the dashboard API require a server-side session. Passwords are hashed with Argon2id and session tokens are stored as hashes. Registration provisions cash, accounting and reporting data atomically, including a 5,000 USD synthetic opening balance. This local release still refuses production mode; invited teammates, role permissions, password recovery, rate limits and HTTPS deployment are pending.

@@ -10,7 +10,7 @@ From the repository root:
 ./scripts/review-invoices.ps1
 ```
 
-Open http://127.0.0.1:8091. Keep the terminal running; Ctrl+C stops the workbench. Defaults select `var/evaluations/invoices-100` and `runs/date-guidance/predictions.json`. Override `-Dataset`, `-Predictions` or `-Port` for another local run. No download or model invocation occurs.
+Open http://127.0.0.1:8093. Keep the terminal running; Ctrl+C stops the workbench. Defaults select `var/evaluations/invoices-100` and `runs/date-guidance/predictions.json`. Override `-Dataset`, `-Predictions` or `-Port` for another local run. No download or model invocation occurs.
 
 The service binds to loopback. It is a single-process, single-operator local tool. The reviewer name provides attribution, not authenticated identity. Do not expose it through a tunnel or shared server. CSRF tokens, same-origin POST checks, a host allowlist, bounded forms and escaped HTML protect this local workflow; they do not replace production authentication.
 
