@@ -44,3 +44,12 @@ Follow-up on the same date: the Python suite passed 15 tests after adding calend
 - This is a local demo with self-service owner registration, not production-ready authentication. Rate limits, invited teammates, password recovery and HTTPS deployment remain pending.
 - Python tests pass with one upstream Starlette TestClient deprecation warning about httpx.
 - Chrome DevTools MCP was unavailable for this settlement change; the updated form was verified through its rendered HTML and local HTTP flow, not a fresh visual browser inspection.
+
+## Annotation workbench — 2026-10-16
+
+- `pytest ai-service/tests -q`: 27 passed, with the existing upstream Starlette/httpx deprecation warning. Coverage includes classification, attribution, exact decimal strings, invalid dates, CSRF (including Unicode), origin/host rejection, bounded forms, path containment, stale edits, changed-image export rejection, draft lines and confirmation revocation.
+- The PowerShell launcher started the actual 100-document workbench on loopback port 8091. Real annotations remain pending; no dataset download, model inference, training or ERP posting was launched.
+- Chrome headless through CDP loaded real scans at 1440, 390 and 320 CSS pixels, with all images loaded and no document-wide horizontal overflow. Desktop and mobile screenshots were inspected. On a separate two-document fixture, browser actions verified rotation, adding a line, confirmation, reverting to draft and exclusion, with no JavaScript/runtime or browser log errors. Fixture confirmations are test actions, never human labels for the real corpus.
+- The CUA browser tool failed to initialize (missing kernel asset path); local Chrome provided the runtime verification. Playwright installation was interrupted after its package download stalled; it is not a project dependency.
+- Impeccable detector ran once and identified one thick accent border; that border was removed. The detector was not rerun.
+- Export is a partial-reference ZIP, not a full supervised-training corpus. Human reference review and a genuinely held-out set remain required before accuracy or training claims.

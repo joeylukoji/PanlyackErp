@@ -45,7 +45,7 @@ Calculate metrics after reviewing references:
 ../.venv/Scripts/python.exe -m app.evaluation score --dataset ../var/evaluations/invoices-50 --predictions ../var/evaluations/invoices-50/runs/baseline/predictions.json
 ```
 
-Only confirmed references with a named reviewer and non-null fields are scored. Financial comparisons use `Decimal`, text comparisons normalize whitespace and case, and line items are compared in document order. The report shows scored-field coverage and per-field matches; `field_accuracy` remains `null` until reference fields have actually been reviewed. JSON accuracy ratios and elapsed seconds are measurements, not financial values.
+Only confirmed references classified with `document_type: invoice`, a named reviewer and non-null fields are scored. Older annotations without a type require explicit classification. Use the [local annotation workbench](annotation-review.md) to review scans without editing JSON manually. Financial comparisons use `Decimal`, text comparisons normalize whitespace and case, and line items are compared in document order. The report shows scored-field coverage and per-field matches; `field_accuracy` remains `null` until reference fields have actually been reviewed. JSON accuracy ratios and elapsed seconds are measurements, not financial values.
 
 ## Decision after the baseline
 

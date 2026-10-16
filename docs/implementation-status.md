@@ -34,3 +34,7 @@
 - Ask PanlyackERP assistant, deliberately after the deterministic ERP core.
 
 This list describes remaining work honestly; a working invoice MVP is not equivalent to all 70 blueprint sections being implemented.
+
+## Local annotation workbench
+
+A separate loopback FastAPI/HTMX tool now supports scan rotation, explicit document classification, partial decimal-string references, draft lines, named human confirmation, exclusions, stale-edit rejection and ZIP reference export. It writes ignored local annotations only; there is no ERP posting or training. See [annotation review](annotation-review.md). Actual human reference review remains pending.

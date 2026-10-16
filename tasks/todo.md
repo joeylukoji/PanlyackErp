@@ -11,6 +11,7 @@
 - [x] Prepare a reproducible 50-document local extraction pilot, annotation templates and scoring tests.
 - [x] Expand to 100 local scans; exercise explicit ISO date guidance and rejection of impossible calendar dates.
 - [ ] Human-review pilot document types and reference fields before reporting extraction accuracy or training.
+- [x] Deliver a local HTMX annotation workbench with explicit document classification, human confirmation, exclusions and partial-reference export.
 - [x] Local owner login, membership check, session revocation and protected pages.
 - [x] Self-service test registration with isolated organization and complete demo provisioning.
 - [x] Partial settlement of posted invoices, including cash, accounting and reporting effects.

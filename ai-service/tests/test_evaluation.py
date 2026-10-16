@@ -27,7 +27,7 @@ def test_prepare_selects_unique_images_reproducibly_and_preserves_references(tmp
 
 def test_scores_only_human_confirmed_fields_and_exact_decimal_amounts():
     rows = [
-        {'id': '1', 'review_status': 'confirmed', 'reviewed_by': 'Reviewer',
+        {'id': '1', 'document_type': 'invoice', 'review_status': 'confirmed', 'reviewed_by': 'Reviewer',
          'reference': {'total': '900719925474.123456', 'partner': ' Supplier ', 'number': None}},
         {'id': '2', 'review_status': 'pending', 'reference': {'total': '2'}},
         {'id': '3', 'review_status': 'confirmed', 'reviewed_by': '', 'reference': {'total': '3'}},
@@ -50,13 +50,13 @@ def test_unreviewed_and_failed_predictions_do_not_produce_fake_accuracy():
     assert report['field_accuracy'] is None
     assert report['successful_extractions'] == 0
     assert report['failed_extractions'] == 1
-    rows[0].update(review_status='confirmed', reviewed_by='Reviewer', reference={'total': '12.00'})
+    rows[0].update(document_type='invoice', review_status='confirmed', reviewed_by='Reviewer', reference={'total': '12.00'})
     report = summarize(rows, [{'id': '1', 'status': 'error'}])
     assert report['matched_fields'] == 0 and report['scored_fields'] == 1
 
 
 def test_line_count_and_decimal_line_fields_are_scored():
-    rows = [{'id': '1', 'review_status': 'confirmed', 'reviewed_by': 'Reviewer',
+    rows = [{'id': '1', 'document_type': 'invoice', 'review_status': 'confirmed', 'reviewed_by': 'Reviewer',
              'reference': {'lines': [{'quantity': '2.0', 'unit_price': '3.10'}]}}]
     predictions = [{'id': '1', 'status': 'ok', 'prediction': {
         'lines': [{'quantity': '2', 'unit_price': '3.1'}, {'quantity': '1'}]}}]
@@ -65,7 +65,7 @@ def test_line_count_and_decimal_line_fields_are_scored():
 
 
 def test_failed_extraction_cannot_match_an_empty_reference_line_list():
-    rows = [{'id': '1', 'review_status': 'confirmed', 'reviewed_by': 'Reviewer',
+    rows = [{'id': '1', 'document_type': 'invoice', 'review_status': 'confirmed', 'reviewed_by': 'Reviewer',
              'reference': {'lines': []}}]
     for predictions in ([], [{'id': '1', 'status': 'error'}]):
         report = summarize(rows, predictions)
@@ -97,3 +97,11 @@ def test_runner_records_failures_continues_and_never_changes_annotations(tmp_pat
     assert report['field_accuracy'] is None
     assert (dataset / 'annotations.json').read_bytes() == before
     assert len(json.loads((dataset / 'runs/test/predictions.json').read_text())) == 2
+
+
+def test_confirmed_reference_needs_invoice_classification_to_be_scored():
+    row = {'id': '1', 'review_status': 'confirmed', 'reviewed_by': 'Reviewer', 'reference': {'total': '1'}}
+    for kind in (None, 'unknown', 'check', 'receipt'):
+        row['document_type'] = kind
+        report = summarize([row], [{'id': '1', 'status': 'ok', 'prediction': {'total': '1'}}])
+        assert report['confirmed_documents'] == 0 and report['field_accuracy'] is None

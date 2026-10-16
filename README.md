@@ -111,6 +111,8 @@ graphify-out/             generated architecture graph, with coverage caveats
 
 ## Important boundaries
 
+For real-scan reference correction, start `./scripts/review-invoices.ps1` and open http://127.0.0.1:8091. See the [local annotation guide](docs/annotation-review.md). This separate tool does not post ERP entries or train the model.
+
 - Organization scope comes from the authenticated session in every business request. Each self-service registration creates one isolated organization and one owner account; the original seeded organization remains available through the owner script.
 - Private pages and the dashboard API require a server-side session. Passwords are hashed with Argon2id and session tokens are stored as hashes. Registration provisions cash, accounting and reporting data atomically, including a 5,000 USD synthetic opening balance. This local release still refuses production mode; invited teammates, role permissions, password recovery, rate limits and HTTPS deployment are pending.
 - Production mode refuses startup. Do not expose these local-demo ports through a tunnel or a public reverse proxy.

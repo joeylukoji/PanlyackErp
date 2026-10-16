@@ -68,7 +68,7 @@ def prepare(source: Path, output: Path, count: int = 50, seed: int = 42) -> list
         annotations.append({
             'id': identifier, 'image': relative_image, 'source_file': path.name,
             'source_sha256': digest, 'width': width, 'height': height,
-            'review_status': 'pending', 'reviewed_by': '', 'reviewed_at': '',
+            'review_status': 'pending', 'document_type': 'unknown', 'reviewed_by': '', 'reviewed_at': '',
             'reference': None, 'notes': '',
         })
         cards.append(f'<article><h2>{identifier}</h2><p>{html.escape(path.name)}</p>'
@@ -136,6 +136,7 @@ def matches(name: str, expected, actual) -> bool:
 
 def summarize(annotations: list[dict], predictions: list[dict]) -> dict:
     confirmed = [row for row in annotations if row.get('review_status') == 'confirmed'
+                 and row.get('document_type') == 'invoice'
                  and row.get('reviewed_by', '').strip() and isinstance(row.get('reference'), dict)
                  and row['reference']]
     by_id = {row['id']: row for row in predictions}
@@ -150,11 +151,14 @@ def summarize(annotations: list[dict], predictions: list[dict]) -> dict:
             metric['matched'] += int(matches(name, expected, predicted_field(prediction, name)))
     scored = sum(metric['scored'] for metric in fields.values())
     matched = sum(metric['matched'] for metric in fields.values())
+    excluded = sum(row.get('review_status') == 'excluded' and bool(row.get('reviewed_by', '').strip())
+                   and row.get('document_type') not in {None, 'unknown', 'invoice'} for row in annotations)
     return {
         'dataset_documents': len(annotations), 'attempted_documents': len(predictions),
         'successful_extractions': sum(row['status'] == 'ok' for row in predictions),
         'failed_extractions': sum(row['status'] == 'error' for row in predictions),
-        'confirmed_documents': len(confirmed), 'pending_documents': len(annotations) - len(confirmed),
+        'confirmed_documents': len(confirmed), 'excluded_documents': excluded,
+        'pending_documents': len(annotations) - len(confirmed) - excluded,
         'scored_fields': scored, 'matched_fields': matched,
         'field_accuracy': matched / scored if scored else None,
         'fields': dict(fields),
