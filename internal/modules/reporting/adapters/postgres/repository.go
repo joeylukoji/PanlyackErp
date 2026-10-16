@@ -60,23 +60,30 @@ func (r Repository) Project(ctx context.Context, event Posted) error {
 	if err != nil || tag.RowsAffected() == 0 {
 		return err
 	}
+	expenses := decimal.Zero
 	revenue, purchases, cost, cash, inventory, receivables, payables := decimal.Zero, decimal.Zero, decimal.Zero, event.Paid, event.Cost.Neg(), event.Due, decimal.Zero
 	if event.Direction == "PURCHASE" {
-		purchases = event.Net
+		if event.Expense {
+			expenses = event.Net
+		} else {
+			purchases = event.Net
+		}
 		cash = event.Paid.Neg()
-		inventory = event.Net
+		if !event.Expense {
+			inventory = event.Net
+		}
 		receivables = decimal.Zero
 		payables = event.Due
 	} else {
 		revenue = event.Net
 		cost = event.Cost
 	}
-	_, err = r.DB.Conn(ctx).Exec(ctx, `UPDATE reporting.summary SET revenue=revenue+$2,purchases=purchases+$3,cogs=cogs+$4,cash=cash+$5,inventory=inventory+$6,receivables=receivables+$7,payables=payables+$8,posted_count=posted_count+1 WHERE organization_id=$1`, event.OrganizationID, revenue.String(), purchases.String(), cost.String(), cash.String(), inventory.String(), receivables.String(), payables.String())
+	_, err = r.DB.Conn(ctx).Exec(ctx, `UPDATE reporting.summary SET revenue=revenue+$2,purchases=purchases+$3,cogs=cogs+$4,cash=cash+$5,inventory=inventory+$6,receivables=receivables+$7,payables=payables+$8,expenses=expenses+$9,posted_count=posted_count+1 WHERE organization_id=$1`, event.OrganizationID, revenue.String(), purchases.String(), cost.String(), cash.String(), inventory.String(), receivables.String(), payables.String(), expenses.String())
 	return err
 }
 
 func (r Repository) Summary(ctx context.Context, org string) (Summary, error) {
 	s := Summary{}
-	err := r.DB.Conn(ctx).QueryRow(ctx, `SELECT revenue::text,purchases::text,cogs::text,cash::text,inventory::text,receivables::text,payables::text,posted_count FROM reporting.summary WHERE organization_id=$1`, org).Scan(&s.Revenue, &s.Purchases, &s.Cost, &s.Cash, &s.Inventory, &s.Receivables, &s.Payables, &s.Count)
+	err := r.DB.Conn(ctx).QueryRow(ctx, `SELECT revenue::text,purchases::text,expenses::text,cogs::text,cash::text,inventory::text,receivables::text,payables::text,posted_count FROM reporting.summary WHERE organization_id=$1`, org).Scan(&s.Revenue, &s.Purchases, &s.Expenses, &s.Cost, &s.Cash, &s.Inventory, &s.Receivables, &s.Payables, &s.Count)
 	return s, err
 }

@@ -58,6 +58,14 @@ Settlements can be partial and may be repeated until the outstanding balance rea
 
 Confirmed invoices require **Reprendre la vérification** before editing. Posted invoices and journal entries are immutable through the application. Journal rows also have database mutation guards.
 
+## Create sales and import expenses
+
+Use **Factures → Créer une vente** to enter the customer, reference, date, stock SKUs, quantities, prices, taxes and optional initial payments. Go calculates the total and stores JSON directly, without calling the extraction service. The invoice page provides **Télécharger le JSON** and a printable document; confirmation and posting remain separate steps. A sale issues existing inventory only when posted.
+
+Use **Importer un justificatif** for external supplier invoices and business expenses. Choose **Achat de marchandises** for inventory receipts or **Dépense de l’entreprise** for operating expenses without stock. Select either an existing PNG/JPEG/PDF or the **Prendre une photo** input. Camera launch depends on the phone/browser; desktop browsers may show a file picker. Review and confirm the extracted fields before posting. Demo mode remains explicitly simulated.
+
+Expenses debit the operating-expense role, retain supplier payables/payments and appear separately in the dashboard. One document currently has one treatment; split mixed merchandise/expense documents before posting. See [scope and boundaries](docs/sales-and-expenses.md).
+
 ## Real extraction
 
 The service includes an Ollama adapter for a locally hosted open-weight vision model:

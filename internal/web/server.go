@@ -83,9 +83,12 @@ func (s *Server) Router() http.Handler {
 		r.Get("/app/_partials/dashboard/kpis", s.kpis)
 		r.Get("/app/invoices", s.invoices)
 		r.Get("/app/invoices/new", func(w http.ResponseWriter, r *http.Request) {
-			s.render(w, r, pages.Upload(csrf(r), "", organizationName(r)))
+			s.render(w, r, pages.Upload(csrf(r), "", organizationName(r), "stock"))
 		})
 		r.Post("/app/invoices/upload", s.upload)
+		r.Get("/app/invoices/sales/new", s.newSale)
+		r.Post("/app/invoices/sales", s.createSale)
+		r.Get("/app/invoices/{id}/json", s.invoiceJSON)
 		r.Get("/app/invoices/{id}", s.review)
 		r.Get("/app/invoices/{id}/document", s.document)
 		r.Post("/app/invoices/{id}/review", s.saveReview)
@@ -254,7 +257,17 @@ func (s *Server) renderReview(w http.ResponseWriter, r *http.Request, invoice do
 func (s *Server) upload(w http.ResponseWriter, r *http.Request) {
 	file, _, err := r.FormFile("document")
 	if err != nil {
-		s.render(w, r, pages.Upload(csrf(r), "Choisissez un fichier PNG, JPEG ou PDF.", organizationName(r)))
+		file, _, err = r.FormFile("camera")
+	}
+	if r.MultipartForm != nil && len(r.MultipartForm.File["document"])+len(r.MultipartForm.File["camera"]) > 1 {
+		if file != nil {
+			file.Close()
+		}
+		s.render(w, r, pages.Upload(csrf(r), "Choisissez un seul document : fichier ou photo.", organizationName(r), r.PostFormValue("purchase_category")))
+		return
+	}
+	if err != nil {
+		s.render(w, r, pages.Upload(csrf(r), "Choisissez un fichier PNG, JPEG ou PDF.", organizationName(r), r.PostFormValue("purchase_category")))
 		return
 	}
 	defer file.Close()
@@ -264,18 +277,18 @@ func (s *Server) upload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if len(data) == 0 || int64(len(data)) > s.Config.MaxUpload {
-		s.render(w, r, pages.Upload(csrf(r), "Fichier vide ou trop volumineux (10 Mo maximum).", organizationName(r)))
+		s.render(w, r, pages.Upload(csrf(r), "Fichier vide ou trop volumineux (10 Mo maximum).", organizationName(r), r.PostFormValue("purchase_category")))
 		return
 	}
 	mime := http.DetectContentType(data)
 	if mime != "image/jpeg" && mime != "image/png" && mime != "application/pdf" {
-		s.render(w, r, pages.Upload(csrf(r), "Format non autorisé. Utilisez PNG, JPEG ou PDF.", organizationName(r)))
+		s.render(w, r, pages.Upload(csrf(r), "Format non autorisé. Utilisez PNG, JPEG ou PDF.", organizationName(r), r.PostFormValue("purchase_category")))
 		return
 	}
-	id, err := s.DocumentService.Upload(r.Context(), organizationID(r), actor(r), data, mime)
+	id, err := s.DocumentService.Upload(r.Context(), organizationID(r), actor(r), data, mime, r.PostFormValue("purchase_category"))
 	if err != nil {
 		s.Logger.Error("upload failed", "error", err)
-		s.render(w, r, pages.Upload(csrf(r), "L’extraction a échoué. Vérifiez que le service IA est disponible, puis réessayez.", organizationName(r)))
+		s.render(w, r, pages.Upload(csrf(r), "L’extraction a échoué. Vérifiez que le service IA est disponible, puis réessayez.", organizationName(r), r.PostFormValue("purchase_category")))
 		return
 	}
 	s.redirect(w, r, pages.InvoiceURL(id))
@@ -292,40 +305,15 @@ func (s *Server) saveReview(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, r, err)
 		return
 	}
-	edited := current
-	edited.Number = r.FormValue("number")
-	edited.Partner = r.FormValue("partner")
-	edited.IssueDate = r.FormValue("issue_date")
-	edited.Direction = r.FormValue("direction")
-	edited.Currency = r.FormValue("currency")
-	edited.Total = r.FormValue("total")
-	edited.Version, err = strconv.Atoi(r.FormValue("version"))
+	edited, err := invoiceForm(r, current)
 	if err != nil {
-		http.Error(w, "Invalid version", 400)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	keys := []string{"sku", "name", "unit", "quantity", "unit_price", "tax_rate"}
-	count := len(r.Form["name"])
-	if count > 100 {
-		http.Error(w, "An invoice supports at most 100 lines", http.StatusBadRequest)
+	edited.Version, err = strconv.Atoi(r.PostFormValue("version"))
+	if err != nil {
+		http.Error(w, "Invalid version", http.StatusBadRequest)
 		return
-	}
-	for _, key := range keys {
-		if len(r.Form[key]) != count {
-			http.Error(w, "Incomplete invoice lines", 400)
-			return
-		}
-	}
-	edited.Lines = make([]documents.Line, count)
-	for n := range count {
-		edited.Lines[n] = documents.Line{SKU: r.Form["sku"][n], Name: r.Form["name"][n], Unit: r.Form["unit"][n], Quantity: r.Form["quantity"][n], UnitPrice: r.Form["unit_price"][n], TaxRate: r.Form["tax_rate"][n]}
-	}
-	edited.Payments = []documents.Payment{}
-	for _, method := range []string{"CASH", "BANK", "MOBILE_MONEY", "CARD"} {
-		amount := r.FormValue("payment_" + method)
-		if amount != "" {
-			edited.Payments = append(edited.Payments, documents.Payment{Method: method, Amount: amount})
-		}
 	}
 	if current.Status == "NEEDS_REVIEW" {
 		if r.FormValue("action") == "add_line" && len(edited.Lines) < 100 {
@@ -417,9 +405,22 @@ func (s *Server) document(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+	invoice, err := s.Documents.Get(r.Context(), organizationID(r), id, false)
+	if err != nil {
+		s.fail(w, r, err)
+		return
+	}
+	if invoice.ExtractionMode == "structured" {
+		s.render(w, r, pages.SalesDocument(invoice, organizationName(r)))
+		return
+	}
 	file, err := s.Documents.File(r.Context(), organizationID(r), id)
 	if err != nil {
 		s.fail(w, r, err)
+		return
+	}
+	if (file.MIME == "image/png" || file.MIME == "image/jpeg") && r.URL.Query().Get("raw") != "1" {
+		s.render(w, r, pages.SourceImage(pages.InvoiceURL(id)+"/document?raw=1"))
 		return
 	}
 	path, err := s.Storage.Path(file.Key)

@@ -18,6 +18,7 @@ type Payment struct {
 	Amount decimal.Decimal
 }
 type Operation struct {
+	Expense               bool
 	Direction             string
 	Net, Tax, Total, Cost decimal.Decimal
 	Payments              []Payment
@@ -39,7 +40,7 @@ func build(op Operation) (Entry, error) {
 		return e, errors.New("invalid accounting amounts")
 	}
 	purchase := op.Direction == "PURCHASE"
-	if !purchase && op.Direction != "SALE" {
+	if (!purchase && op.Direction != "SALE") || (op.Expense && !purchase) {
 		return e, errors.New("unknown accounting operation")
 	}
 	add := func(role string, amount decimal.Decimal, debit bool) {
@@ -71,7 +72,11 @@ func build(op Operation) (Entry, error) {
 		return e, errors.New("overpayment")
 	}
 	if purchase {
-		add("INVENTORY", op.Net, true)
+		if op.Expense {
+			add("OPERATING_EXPENSE", op.Net, true)
+		} else {
+			add("INVENTORY", op.Net, true)
+		}
 		add("INPUT_TAX", op.Tax, true)
 		add("ACCOUNTS_PAYABLE", op.Total.Sub(paid), false)
 	} else {

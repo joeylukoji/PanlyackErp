@@ -72,17 +72,20 @@ func (s Service) Post(ctx context.Context, org, id, actor string) error {
 		if err != nil {
 			return err
 		}
-		items := make([]inventory.Item, 0, len(invoice.Lines))
-		for _, line := range invoice.Lines {
-			q, _ := decimal.NewFromString(line.Quantity)
-			p, _ := decimal.NewFromString(line.UnitPrice)
-			items = append(items, inventory.Item{SKU: line.SKU, Name: line.Name, Unit: line.Unit, Quantity: q, Price: p})
+		cost := decimal.Zero
+		if invoice.PurchaseCategory != "expense" {
+			items := make([]inventory.Item, 0, len(invoice.Lines))
+			for _, line := range invoice.Lines {
+				q, _ := decimal.NewFromString(line.Quantity)
+				p, _ := decimal.NewFromString(line.UnitPrice)
+				items = append(items, inventory.Item{SKU: line.SKU, Name: line.Name, Unit: line.Unit, Quantity: q, Price: p})
+			}
+			cost, err = s.Inventory.Apply(ctx, inventory.Command{OrganizationID: org, SourceID: id, Direction: invoice.Direction, Method: organization.InventoryMethod, Items: items})
+			if err != nil {
+				return err
+			}
 		}
-		cost, err := s.Inventory.Apply(ctx, inventory.Command{OrganizationID: org, SourceID: id, Direction: invoice.Direction, Method: organization.InventoryMethod, Items: items})
-		if err != nil {
-			return err
-		}
-		operation := account.Operation{Direction: invoice.Direction, Net: totals.Net, Tax: totals.Tax, Total: totals.Total, Cost: cost, Payments: []account.Payment{}}
+		operation := account.Operation{Expense: invoice.PurchaseCategory == "expense", Direction: invoice.Direction, Net: totals.Net, Tax: totals.Tax, Total: totals.Total, Cost: cost, Payments: []account.Payment{}}
 		payments := []cash.Payment{}
 		for _, p := range invoice.Payments {
 			amount, _ := decimal.NewFromString(p.Amount)
@@ -112,6 +115,6 @@ func (s Service) Post(ctx context.Context, org, id, actor string) error {
 		if err := s.Audit.Append(ctx, org, actor, "InvoicePosted", id, invoice); err != nil {
 			return err
 		}
-		return s.Reporting.Project(ctx, reporting.Posted{OrganizationID: org, SourceID: id, Direction: invoice.Direction, Net: totals.Net, Cost: cost, Paid: totals.Paid, Due: totals.Total.Sub(totals.Paid)})
+		return s.Reporting.Project(ctx, reporting.Posted{Expense: invoice.PurchaseCategory == "expense", OrganizationID: org, SourceID: id, Direction: invoice.Direction, Net: totals.Net, Cost: cost, Paid: totals.Paid, Due: totals.Total.Sub(totals.Paid)})
 	})
 }

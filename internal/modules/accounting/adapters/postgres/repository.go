@@ -23,7 +23,7 @@ func (r Repository) SeedDemo(ctx context.Context, org, sourceID string) error {
 		('INPUT_TAX','44566','Deductible input tax'),('OUTPUT_TAX','44571','Collected output tax'),
 		('ACCOUNTS_PAYABLE','401','Trade payables'),('ACCOUNTS_RECEIVABLE','411','Trade receivables'),
 		('SALES','707','Merchandise sales'),('COGS','6037','Cost of goods sold'),
-		('EQUITY','101','Opening equity')) AS accounts(role,code,name)`, org)
+		('OPERATING_EXPENSE','628','Operating expenses'),('EQUITY','101','Opening equity')) AS accounts(role,code,name)`, org)
 	if err != nil {
 		return err
 	}

@@ -16,5 +16,7 @@
 - [x] Self-service test registration with isolated organization and complete demo provisioning.
 - [x] Partial settlement of posted invoices, including cash, accounting and reporting effects.
 - [x] Trial balance and account-filtered general ledger, with organization isolation and exact balances.
+- [x] Author customer sales directly as structured JSON, render printable invoices and export persisted invoice data without OCR.
+- [x] Import external invoices through file or camera input; post operating expenses without inventory effects.
 - [ ] Production multi-user identity, authorization and operational hardening.
 - [ ] Finish broader blueprint capabilities listed in docs/implementation-status.md.

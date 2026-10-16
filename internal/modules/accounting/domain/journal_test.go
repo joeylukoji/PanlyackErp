@@ -59,3 +59,29 @@ func TestSettlementEntry(t *testing.T) {
 		}
 	}
 }
+
+func TestExpenseDebitsOperatingExpensesInsteadOfInventory(t *testing.T) {
+	op := Operation{Direction: "PURCHASE", Expense: true, Net: decimal.NewFromInt(100), Tax: decimal.NewFromInt(10), Total: decimal.NewFromInt(110), Payments: []Payment{{Method: "CASH", Amount: decimal.NewFromInt(30)}}}
+	for _, engine := range []PostingEngine{FrenchPCG{}, USGAAP{}} {
+		entry, err := engine.Build(op)
+		if err != nil {
+			t.Fatal(err)
+		}
+		found := false
+		for _, line := range entry.Lines {
+			if line.Role == "INVENTORY" || line.Role == "COGS" {
+				t.Fatal("expense affected stock accounts")
+			}
+			if line.Role == "OPERATING_EXPENSE" && line.Debit.Equal(op.Net) {
+				found = true
+			}
+		}
+		if !found {
+			t.Fatal("missing operating expense debit")
+		}
+	}
+	op.Direction = "SALE"
+	if _, err := (FrenchPCG{}).Build(op); err == nil {
+		t.Fatal("expense sale accepted")
+	}
+}

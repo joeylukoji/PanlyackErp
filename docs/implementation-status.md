@@ -25,10 +25,10 @@
 - OCR quality assessment against human references, field-level extraction confidence UX and extraction retry queue. The real-model pilot exposes date-format failures and mislabeled source documents that need review before training.
 - Independent product/category/warehouse CRUD, manual inventory adjustments, returns and losses.
 - User-configurable organization/valuation policy and US chart of accounts; fiscal-year management UI.
-- Bank reconciliation and general expenses.
+- Bank reconciliation and configurable expense categories/accounts; a single operating-expense treatment is delivered.
 - Persisted reversal/correction workflow (the pure reversal rule is tested, but no reversal command/UI is delivered).
 - Period filters, revenue/cashflow series, low-stock alerts and top-product projections. The general ledger is currently capped at 400 recent lines per selected account.
-- Broader `/api/v1` surface: only dashboard JSON currently exists.
+- Broader `/api/v1` surface: dashboard JSON and an authenticated per-invoice JSON download exist; no general external CRUD API is delivered.
 - Fully generated sqlc adapters for all module queries; normalized invoice line/payment tables (draft invoice aggregate uses JSONB).
 - Async outbox dispatcher/replay, multi-user concurrency UX, backups and operational monitoring.
 - Ask PanlyackERP assistant, deliberately after the deterministic ERP core.
@@ -38,3 +38,7 @@ This list describes remaining work honestly; a working invoice MVP is not equiva
 ## Local annotation workbench
 
 A separate loopback FastAPI/HTMX tool now supports scan rotation, explicit document classification, partial decimal-string references, draft lines, named human confirmation, exclusions, stale-edit rejection and ZIP reference export. It writes ignored local annotations only; there is no ERP posting or training. See [annotation review](annotation-review.md). Actual human reference review remains pending.
+
+## Structured sales and external expenses
+
+The authenticated HTMX workspace now creates sales from entered client/line/payment data and computes exact totals without invoking AI. Persisted invoices have a JSON download; authored sales also have a printable view labeled by status. Uploaded supplier invoices and expenses accept a file or native camera input and retain human confirmation. Expenses skip inventory, debit an operating-expense role and update a separate expense aggregate. Posting remains transactional and idempotent. Invoice exports/documents are organization-scoped. See [feature scope](sales-and-expenses.md); legal numbering, customer master data and mixed stock/expense documents remain outside this slice.

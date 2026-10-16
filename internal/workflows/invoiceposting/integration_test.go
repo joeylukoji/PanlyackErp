@@ -10,7 +10,9 @@ import (
 	"os"
 	account "panlyackerp/internal/modules/accounting/adapters/postgres"
 	cash "panlyackerp/internal/modules/cash/adapters/postgres"
+	doclocal "panlyackerp/internal/modules/documents/adapters/local"
 	documents "panlyackerp/internal/modules/documents/adapters/postgres"
+	docapp "panlyackerp/internal/modules/documents/application"
 	doc "panlyackerp/internal/modules/documents/domain"
 	identity "panlyackerp/internal/modules/identity/adapters/postgres"
 	inventory "panlyackerp/internal/modules/inventory/adapters/postgres"
@@ -264,6 +266,71 @@ func TestPostgresPostingAtomicAndIdempotent(t *testing.T) {
 		if row.Code != "401" {
 			t.Fatal("ledger contains another account", row)
 		}
+	}
+	// Generated sales bypass extraction while retaining review, stock and posting guarantees.
+	authored := docapp.Service{Repository: docs, Storage: doclocal.Storage{Root: t.TempDir()}, UOW: store, Audit: audit.Log{DB: store}}
+	native := doc.Invoice{Number: "NATIVE-SALE", Partner: "Customer", IssueDate: "2026-10-16", Currency: "USD", Total: "999",
+		Lines: []doc.Line{{SKU: "CREDIT-ITEM", Name: "Credit item", Unit: "each", Quantity: "1", UnitPrice: "12.30", TaxRate: "10"}}, Payments: []doc.Payment{}}
+	nativeID, err := authored.CreateSale(ctx, org, owner.UserID, native)
+	if err != nil {
+		t.Fatal(err)
+	}
+	native, err = docs.Get(ctx, org, nativeID, false)
+	if err != nil || native.Total != "13.5300" || native.ExtractionMode != "structured" {
+		t.Fatal("native structured invoice", native, err)
+	}
+	if err := service.Post(ctx, org, nativeID, owner.UserID); err == nil {
+		t.Fatal("native sale bypassed confirmation")
+	}
+	if err := authored.Review(ctx, org, owner.UserID, native, true); err != nil {
+		t.Fatal(err)
+	}
+	if err := service.Post(ctx, org, nativeID, owner.UserID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := docs.Get(ctx, uuid.NewString(), nativeID, false); err == nil {
+		t.Fatal("native sale crossed organization boundary")
+	}
+	beforeExpense, err := reports.Summary(ctx, org)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expense := doc.Invoice{ID: uuid.NewString(), OrganizationID: org, DocumentID: uuid.NewString(), Status: "CONFIRMED", Version: 1,
+		Direction: "PURCHASE", PurchaseCategory: "expense", Number: "EXPENSE-1", Partner: "External utility", IssueDate: "2026-10-16", Currency: "USD", Total: "110",
+		Lines: []doc.Line{{Name: "Utility bill", Unit: "each", Quantity: "1", UnitPrice: "100", TaxRate: "10"}}, Payments: []doc.Payment{{Method: "CASH", Amount: "30"}}}
+	if err := docs.Create(ctx, expense, documents.File{Key: uuid.NewString(), MIME: "image/png", Hash: "expense"}); err != nil {
+		t.Fatal(err)
+	}
+	for range 2 {
+		if err := service.Post(ctx, org, expense.ID, owner.UserID); err != nil {
+			t.Fatal(err)
+		}
+	}
+	afterExpense, err := reports.Summary(ctx, org)
+	if err != nil || afterExpense.Inventory != beforeExpense.Inventory || afterExpense.Purchases != beforeExpense.Purchases || afterExpense.Expenses != "100.0000" {
+		t.Fatal("expense projection changed stock/purchases", afterExpense, err)
+	}
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM inventory.stock_movements WHERE organization_id=$1 AND source_id=$2`, org, expense.ID).Scan(&count); err != nil || count != 0 {
+		t.Fatal("expense created stock", count, err)
+	}
+	var expenseDebit string
+	if err := pool.QueryRow(ctx, `SELECT debit::text FROM accounting.journal_lines l JOIN accounting.journal_entries e ON e.organization_id=l.organization_id AND e.id=l.entry_id WHERE e.organization_id=$1 AND e.source_id=$2 AND l.role='OPERATING_EXPENSE'`, org, expense.ID).Scan(&expenseDebit); err != nil || expenseDebit != "100.0000" {
+		t.Fatal("missing expense posting", expenseDebit, err)
+	}
+	failedExpense := expense
+	failedExpense.ID = uuid.NewString()
+	failedExpense.Payments = []doc.Payment{{Method: "CARD", Amount: "110"}}
+	if err := docs.Create(ctx, failedExpense, documents.File{Key: uuid.NewString(), MIME: "image/png", Hash: "expense"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := service.Post(ctx, org, failedExpense.ID, owner.UserID); err == nil {
+		t.Fatal("expense accepted insufficient funds")
+	}
+	if after, err := reports.Summary(ctx, org); err != nil || after != afterExpense {
+		t.Fatal("expense failure partially changed summary", after, err)
+	}
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM accounting.journal_entries WHERE organization_id=$1 AND source_id=$2`, org, failedExpense.ID).Scan(&count); err != nil || count != 0 {
+		t.Fatal("expense failure left journal", count, err)
 	}
 	if _, err := pool.Exec(ctx, `UPDATE accounting.fiscal_periods SET closed=true WHERE organization_id=$1`, org); err != nil {
 		t.Fatal(err)

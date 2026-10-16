@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"github.com/google/uuid"
 	"panlyackerp/internal/modules/documents/domain"
@@ -34,7 +35,10 @@ type Service struct {
 	Audit      Audit
 }
 
-func (s Service) Upload(ctx context.Context, org, actor string, data []byte, mime string) (string, error) {
+func (s Service) Upload(ctx context.Context, org, actor string, data []byte, mime, category string) (string, error) {
+	if category != "stock" && category != "expense" {
+		return "", errors.New("choose merchandise or expense")
+	}
 	file, err := s.Storage.Save(data, mime)
 	if err != nil {
 		return "", err
@@ -49,11 +53,58 @@ func (s Service) Upload(ctx context.Context, org, actor string, data []byte, mim
 	invoice.OrganizationID = org
 	invoice.Status = "NEEDS_REVIEW"
 	invoice.Version = 1
+	// The operator selects the treatment; an extraction cannot authorize stock or expense effects.
+	invoice.Direction = "PURCHASE"
+	invoice.PurchaseCategory = category
 	err = s.UOW.WithinTransaction(ctx, func(ctx context.Context) error {
 		if err := s.Repository.Create(ctx, invoice, file); err != nil {
 			return err
 		}
-		return s.Audit.Append(ctx, org, actor, "InvoiceUploaded", invoice.ID, map[string]string{"sha256": file.Hash, "mode": invoice.ExtractionMode})
+		return s.Audit.Append(ctx, org, actor, "InvoiceUploaded", invoice.ID, map[string]string{"sha256": file.Hash, "mode": invoice.ExtractionMode, "purchase_category": category})
+	})
+	if err != nil {
+		_ = s.Storage.Remove(file.Key)
+		return "", err
+	}
+	return invoice.ID, nil
+}
+
+// CreateSale keeps authored data structured and never invokes the extraction adapter.
+func (s Service) CreateSale(ctx context.Context, org, actor string, invoice domain.Invoice) (string, error) {
+	invoice.ID = uuid.NewString()
+	invoice.DocumentID = uuid.NewString()
+	invoice.OrganizationID = org
+	invoice.Direction = "SALE"
+	invoice.PurchaseCategory = ""
+	invoice.Status = "NEEDS_REVIEW"
+	invoice.ExtractionMode = "structured"
+	invoice.Confidence = ""
+	invoice.Warnings = []string{}
+	if invoice.Payments == nil {
+		invoice.Payments = []domain.Payment{}
+	}
+	invoice.Version = 1
+	totals, err := invoice.LineTotals()
+	if err != nil {
+		return "", err
+	}
+	invoice.Total = totals.Total.StringFixed(4)
+	if _, err := invoice.Validate(); err != nil {
+		return "", err
+	}
+	data, err := json.Marshal(invoice)
+	if err != nil {
+		return "", err
+	}
+	file, err := s.Storage.Save(data, "application/json")
+	if err != nil {
+		return "", err
+	}
+	err = s.UOW.WithinTransaction(ctx, func(ctx context.Context) error {
+		if err := s.Repository.Create(ctx, invoice, file); err != nil {
+			return err
+		}
+		return s.Audit.Append(ctx, org, actor, "SaleInvoiceCreated", invoice.ID, invoice)
 	})
 	if err != nil {
 		_ = s.Storage.Remove(file.Key)
@@ -80,6 +131,19 @@ func (s Service) Review(ctx context.Context, org, actor string, edited domain.In
 		edited.ExtractionMode = current.ExtractionMode
 		edited.Confidence = current.Confidence
 		edited.Warnings = current.Warnings
+		if current.PurchaseCategory != "" && edited.Direction != "PURCHASE" {
+			return errors.New("an external purchase or expense must retain purchase direction")
+		}
+		if current.ExtractionMode == "structured" {
+			if edited.Direction != "SALE" || edited.PurchaseCategory == "expense" {
+				return errors.New("a generated sales invoice must remain a sale")
+			}
+			totals, err := edited.LineTotals()
+			if err != nil {
+				return err
+			}
+			edited.Total = totals.Total.StringFixed(4)
+		}
 		if _, err := edited.Validate(); err != nil {
 			return err
 		}

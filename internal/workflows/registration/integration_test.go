@@ -117,7 +117,7 @@ func TestRegistrationCreatesIsolatedReadyWorkspaces(t *testing.T) {
 		if err := pool.QueryRow(ctx, `SELECT count(*) FROM accounting.journal_lines WHERE organization_id=$1`, session.OrganizationID).Scan(&journalLines); err != nil {
 			t.Fatal(err)
 		}
-		if accountCount != 12 || periodCount == 0 || journalLines != 2 {
+		if accountCount != 13 || periodCount == 0 || journalLines != 2 {
 			t.Fatalf("incomplete accounting setup: accounts=%d periods=%d lines=%d", accountCount, periodCount, journalLines)
 		}
 		summary, err := (reporting.Repository{DB: store}).Summary(ctx, session.OrganizationID)

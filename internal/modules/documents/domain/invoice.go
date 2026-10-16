@@ -25,22 +25,23 @@ type Payment struct {
 }
 
 type Invoice struct {
-	ID             string    `json:"id"`
-	OrganizationID string    `json:"organization_id"`
-	DocumentID     string    `json:"document_id"`
-	Status         string    `json:"status"`
-	Direction      string    `json:"direction"`
-	Number         string    `json:"number"`
-	Partner        string    `json:"partner"`
-	IssueDate      string    `json:"issue_date"`
-	Currency       string    `json:"currency"`
-	Total          string    `json:"total"`
-	Lines          []Line    `json:"lines"`
-	Payments       []Payment `json:"payments"`
-	Confidence     string    `json:"confidence"`
-	Warnings       []string  `json:"warnings"`
-	ExtractionMode string    `json:"extraction_mode"`
-	Version        int       `json:"version"`
+	PurchaseCategory string    `json:"purchase_category,omitempty"`
+	ID               string    `json:"id"`
+	OrganizationID   string    `json:"organization_id"`
+	DocumentID       string    `json:"document_id"`
+	Status           string    `json:"status"`
+	Direction        string    `json:"direction"`
+	Number           string    `json:"number"`
+	Partner          string    `json:"partner"`
+	IssueDate        string    `json:"issue_date"`
+	Currency         string    `json:"currency"`
+	Total            string    `json:"total"`
+	Lines            []Line    `json:"lines"`
+	Payments         []Payment `json:"payments"`
+	Confidence       string    `json:"confidence"`
+	Warnings         []string  `json:"warnings"`
+	ExtractionMode   string    `json:"extraction_mode"`
+	Version          int       `json:"version"`
 }
 
 type Totals struct{ Net, Tax, Total, Paid decimal.Decimal }
@@ -62,30 +63,16 @@ func (i Invoice) Validate() (Totals, error) {
 	if _, err := time.Parse("2006-01-02", i.IssueDate); err != nil {
 		return t, errors.New("invalid invoice date")
 	}
-	if len(i.Lines) == 0 || len(i.Lines) > 100 {
-		return t, errors.New("invoice must contain 1 to 100 lines")
+	if i.PurchaseCategory != "" && i.PurchaseCategory != "stock" && i.PurchaseCategory != "expense" {
+		return t, errors.New("invalid purchase category")
 	}
-	for n, line := range i.Lines {
-		if strings.TrimSpace(line.Name) == "" || len(line.Name) > 200 || len(line.SKU) > 80 || line.Unit == "" || len(line.Unit) > 20 {
-			return t, fmt.Errorf("line %d: name and unit are required", n+1)
-		}
-		q, err := value.Parse(line.Quantity, 6)
-		if err != nil || !q.IsPositive() {
-			return t, fmt.Errorf("line %d: invalid quantity", n+1)
-		}
-		p, err := value.Parse(line.UnitPrice, 4)
-		if err != nil {
-			return t, fmt.Errorf("line %d: invalid unit price", n+1)
-		}
-		rate, err := value.Parse(line.TaxRate, 4)
-		if err != nil || rate.GreaterThan(decimal.NewFromInt(100)) {
-			return t, fmt.Errorf("line %d: invalid tax percentage", n+1)
-		}
-		net := q.Mul(p).Round(4)
-		t.Net = t.Net.Add(net)
-		t.Tax = t.Tax.Add(net.Mul(rate).Div(decimal.NewFromInt(100)).Round(4))
+	if i.PurchaseCategory == "expense" && i.Direction != "PURCHASE" {
+		return t, errors.New("expenses must use purchase direction")
 	}
-	t.Total = t.Net.Add(t.Tax)
+	t, err := i.LineTotals()
+	if err != nil {
+		return t, err
+	}
 	declared, err := value.Parse(i.Total, 4)
 	if err != nil || !declared.Equal(t.Total) || !t.Total.IsPositive() {
 		return t, fmt.Errorf("invoice total must equal line totals plus tax: %s", t.Total.StringFixed(4))
@@ -113,6 +100,36 @@ func (i Invoice) Validate() (Totals, error) {
 	if t.Paid.GreaterThan(t.Total) {
 		return t, errors.New("payments exceed invoice total")
 	}
+	return t, nil
+}
+
+// LineTotals computes the same four-decimal totals for authored and extracted invoices.
+func (i Invoice) LineTotals() (Totals, error) {
+	t := Totals{}
+	if len(i.Lines) == 0 || len(i.Lines) > 100 {
+		return t, errors.New("invoice must contain 1 to 100 lines")
+	}
+	for n, line := range i.Lines {
+		if strings.TrimSpace(line.Name) == "" || len(line.Name) > 200 || len(line.SKU) > 80 || line.Unit == "" || len(line.Unit) > 20 {
+			return t, fmt.Errorf("line %d: name and unit are required", n+1)
+		}
+		q, err := value.Parse(line.Quantity, 6)
+		if err != nil || !q.IsPositive() {
+			return t, fmt.Errorf("line %d: invalid quantity", n+1)
+		}
+		p, err := value.Parse(line.UnitPrice, 4)
+		if err != nil {
+			return t, fmt.Errorf("line %d: invalid unit price", n+1)
+		}
+		rate, err := value.Parse(line.TaxRate, 4)
+		if err != nil || rate.GreaterThan(decimal.NewFromInt(100)) {
+			return t, fmt.Errorf("line %d: invalid tax percentage", n+1)
+		}
+		net := q.Mul(p).Round(4)
+		t.Net = t.Net.Add(net)
+		t.Tax = t.Tax.Add(net.Mul(rate).Div(decimal.NewFromInt(100)).Round(4))
+	}
+	t.Total = t.Net.Add(t.Tax)
 	return t, nil
 }
 
