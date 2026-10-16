@@ -5,10 +5,12 @@ from decimal import Decimal
 
 import httpx
 import pypdfium2 as pdfium
+import pytest
 from fastapi.testclient import TestClient
+from pydantic import ValidationError
 
 from app.main import app
-from app.schemas import ExtractionRequest
+from app.schemas import ExtractionRequest, Invoice
 
 
 def pdf_request(pages: int) -> ExtractionRequest:
@@ -71,3 +73,16 @@ def test_ollama_rejects_invalid_pdf(monkeypatch):
     payload = {"mime_type": "application/pdf", "file_base64": base64.b64encode(b"%PDF-not-a-document").decode()}
     response = TestClient(app).post("/v1/invoices/extract", json=payload, headers={"Authorization": "Bearer test-key"})
     assert response.status_code == 422
+
+
+@pytest.mark.parametrize('value', ['2026-02-29', '2026-04-31', '2026-13-01', '2026-00-01'])
+def test_invoice_rejects_impossible_calendar_dates(value):
+    with pytest.raises(ValidationError):
+        Invoice(number='A', partner='Supplier', issue_date=value, total='1',
+                lines=[{'name': 'Item', 'quantity': '1', 'unit_price': '1'}])
+
+
+def test_invoice_accepts_real_leap_day_without_changing_date_text():
+    invoice = Invoice(number='A', partner='Supplier', issue_date='2024-02-29', total='1',
+                      lines=[{'name': 'Item', 'quantity': '1', 'unit_price': '1'}])
+    assert invoice.issue_date == '2024-02-29'

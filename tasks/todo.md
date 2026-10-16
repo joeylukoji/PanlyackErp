@@ -9,6 +9,7 @@
 - [x] Rasterize bounded PDFs for the vision adapter; test multi-page images with a mock model.
 - [x] Exercise the existing extraction adapter with installed Gemma 3 4B on real local scans; quality still requires human references.
 - [x] Prepare a reproducible 50-document local extraction pilot, annotation templates and scoring tests.
+- [x] Expand to 100 local scans; exercise explicit ISO date guidance and rejection of impossible calendar dates.
 - [ ] Human-review pilot document types and reference fields before reporting extraction accuracy or training.
 - [x] Local owner login, membership check, session revocation and protected pages.
 - [x] Self-service test registration with isolated organization and complete demo provisioning.

@@ -6,6 +6,7 @@
 - File type/size checks, generated storage keys, SHA-256, image/PDF preview.
 - Explicit demo extraction; separately configurable Ollama vision adapter with 1–5 page PDF rasterization.
 - Installed Gemma 3 4B exercised through the real adapter; reproducible 50-document local pilot, annotation templates and exact-decimal scoring are available. Schema failures are recorded; extraction accuracy remains unmeasured without human references.
+- A second 100-document experiment exercises explicit ISO date guidance and calendar validation. It yielded 96 schema-valid responses and 4 rejections, including an impossible month. Same-image acceptance improved from 4/50 to 48/50; these are not accuracy measurements, and mixed source document types/currencies remain a concern.
 - Editable invoice header, lines, taxes and split payment amounts; exact total validation.
 - Human confirmation; explicit reopen transition; immutable posted state.
 - Purchase receipt, sale issue, FIFO and AVCO cost allocation; product matching by confirmed SKU.

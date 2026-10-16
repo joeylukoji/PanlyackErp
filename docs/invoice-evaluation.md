@@ -56,3 +56,24 @@ The first remedial experiment should improve explicit date-format guidance and t
 Inspect supplier, number, date, currency, total and line-item errors separately. The current ERP schema has line tax rates but no separate header subtotal or tax-total field; this benchmark does not pretend to measure fields absent from the adapter contract. A separate held-out set, grouped by supplier/layout and checked for duplicates, is required before claiming generalization or comparing a fine-tuned model. This 50-document pilot must not be reused as training data and then presented as an independent test.
 
 Fine-tuning requires reviewed image/reference pairs and suitable source rights. The real Iowa payment sample does not provide these pairs or balanced debit/credit journal targets. It is not imported into this extraction benchmark. Human confirmation and deterministic accounting checks remain mandatory in the ERP.
+
+## Expanded date-guidance experiment
+
+The follow-up uses 100 documents from the same downloaded source images, without restarting the archive download. Prepare and run it separately so neither the original 50-image dataset nor its baseline predictions are overwritten:
+
+```powershell
+../.venv/Scripts/python.exe -m app.evaluation prepare --source ../var/datasets/real-invoices-rvl-cdip/images --output ../var/evaluations/invoices-100 --count 100
+../.venv/Scripts/python.exe -m app.evaluation run --dataset ../var/evaluations/invoices-100 --output ../var/evaluations/invoices-100/runs/date-guidance --model gemma3:4b
+```
+
+The first 50 source hashes were checked against the original pilot and match in order; the remaining 50 are additional documents. This allows a same-document comparison of schema failures before/after prompt guidance. The prompt now explicitly requests ISO dates, distinguishes invoice dates from due/payment dates, and asks for an empty date with a warning instead of fabricating missing or ambiguous information. Empty dates still fail the required-field schema safely. A calendar validator also rejects impossible dates such as 2026-02-29; string formatting alone previously accepted them.
+
+This is a development experiment, not an independently held-out accuracy evaluation: the earlier 50 errors informed the prompt revision. No fine-tuning or model-weight changes are involved. New predictions remain unconfirmed and do not update reference annotations.
+
+Visual checks reinforce the limits: document 001 is a check/payment voucher, and document 005 is a shipping memorandum/warehouse receipt. On document 005, Gemma returned a schema-valid date of 2022-12-07 that does not match the handwritten date visible in the scan. Those observations are assistant review notes, not human-confirmed labels. More documents and more ISO-formatted outputs do not establish correct dates or correct document types; human screening remains necessary.
+
+Assistant review notes were added for the first nine scans inspected. Document 003 contains an unconfirmed visual draft of a few reference fields, including its printed March 19, 1988 invoice date; handwritten later dates are payment/reminder annotations. Its status remains `pending`, with no human reviewer, and it is excluded from accuracy scoring until confirmed. Several other inspected pages are vouchers, a revised budget, an internal approval sheet or a ticket/receipt. This corpus must therefore be screened rather than described as 100 confirmed invoices.
+
+Additional visual notes cover documents 051, 060 and 065 from the new half. They include a French/Dutch invoice with several date markings, a German pro-forma invoice denominated in DM, and a purchase requisition. The archive is not exclusively US supplier invoices. Historical currencies such as DEM are outside the ERP's current USD/EUR/CDF/ZAR enum; schema-valid currency output can therefore be incorrect. These examples require source screening and human references, not automatic relabeling to a supported currency.
+
+The expanded run completed on 2026-10-16: 100 attempts, 96 schema-valid responses and 4 rejected responses. The failures were an empty date (017), invalid/truncated JSON (024 and 073), and an impossible month in `1992-13-07` (084), rejected by the new calendar validator. On the same first 50 images, accepted responses increased from 4 to 48; the added 50 produced 48 accepted responses. This is schema conformity only, not 96% extraction/date accuracy. All 100 documents remain unconfirmed for scoring. Results and the same-document comparison are saved under `var/evaluations/invoices-100/runs/date-guidance/`.
