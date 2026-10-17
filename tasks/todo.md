@@ -19,6 +19,7 @@
 - [x] Deliver a local HTMX annotation workbench with explicit document classification, human confirmation, exclusions and partial-reference export.
 - [x] Local owner login, membership check, session revocation and protected pages.
 - [x] Self-service test registration with isolated organization and complete demo provisioning.
+- [x] Public responsive Panlyack landing page inspired by supplied references, with working navigation to login and registration; desktop/mobile browser checks completed.
 - [x] Partial settlement of posted invoices, including cash, accounting and reporting effects.
 - [x] Trial balance and account-filtered general ledger, with organization isolation and exact balances.
 - [x] Author customer sales directly as structured JSON, render printable invoices and export persisted invoice data without OCR.
