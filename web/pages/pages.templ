@@ -82,7 +82,7 @@ templ LandingIcon(name string) {
 templ Login(csrf,message string) {
 <!DOCTYPE html>
 <html lang="fr"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Connexion · PanlyackERP</title><link rel="icon" type="image/png" href="/static/panlyack-logo.png"/><link rel="stylesheet" href="/static/app.css"/></head>
-<body class="auth-page"><main class="auth-shell"><section class="auth-form-side"><div class="auth-form-inner"><div class="auth-brand"><span class="brand-mark" aria-hidden="true"><img src="/static/panlyack-logo.png" alt="" width="1254" height="1254"/></span><span>PanlyackERP</span></div><h1>Retrouvez vos opérations.</h1><p class="muted">Connectez-vous à l’espace de travail de votre entreprise.</p>
+<body class="auth-page"><main class="auth-shell"><section class="auth-form-side"><div class="auth-form-inner"><a class="auth-brand" href="/" aria-label="PanlyackERP, retour à l’accueil"><span class="brand-mark" aria-hidden="true"><img src="/static/panlyack-logo.png" alt="" width="1254" height="1254"/></span><span>Panlyack<span class="brand-light">ERP</span></span></a><h1>Retrouvez vos opérations.</h1><p class="muted">Connectez-vous à l’espace de travail de votre entreprise.</p>
 if message!="" {
 <div class="notice error" role="alert">{ message }</div>
 }
@@ -93,7 +93,7 @@ if message!="" {
 templ Register(csrf,message string) {
 <!DOCTYPE html>
 <html lang="fr"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Créer un compte · PanlyackERP</title><link rel="icon" type="image/png" href="/static/panlyack-logo.png"/><link rel="stylesheet" href="/static/app.css"/></head>
-<body class="auth-page"><main class="auth-shell"><section class="auth-form-side"><div class="auth-form-inner"><div class="auth-brand"><span class="brand-mark" aria-hidden="true"><img src="/static/panlyack-logo.png" alt="" width="1254" height="1254"/></span><span>PanlyackERP</span></div><h1>Créez votre espace de test.</h1><p class="muted">Votre entreprise dispose de ses propres factures, stocks, comptes et soldes de démonstration.</p>
+<body class="auth-page"><main class="auth-shell"><section class="auth-form-side"><div class="auth-form-inner"><a class="auth-brand" href="/" aria-label="PanlyackERP, retour à l’accueil"><span class="brand-mark" aria-hidden="true"><img src="/static/panlyack-logo.png" alt="" width="1254" height="1254"/></span><span>Panlyack<span class="brand-light">ERP</span></span></a><h1>Créez votre espace de test.</h1><p class="muted">Votre entreprise dispose de ses propres factures, stocks, comptes et soldes de démonstration.</p>
 if message!="" {
 <div class="notice error" role="alert">{ message }</div>
 }
@@ -123,27 +123,52 @@ templ Heading(title,description string) {
 }
 
 templ KPI(s reporting.Summary) {
- <dl class="metrics" id="kpis" hx-get="/app/_partials/dashboard/kpis" hx-trigger="every 30s" hx-swap="outerHTML">
- for _,m:=range []struct{Label,Value,Icon,Color string}{{"Chiffre d’affaires",s.Revenue,"accounting","blue"},{"Factures comptabilisées",strconv.Itoa(s.Count),"invoices","purple"},{"Valeur du stock",s.Inventory,"inventory","amber"},{"Trésorerie disponible",s.Cash,"cash","green"}} {
- <div class="metric"><div class={ "metric-icon "+m.Color }><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href={ templ.SafeURL("/static/nav-icons.svg#"+m.Icon) }></use></svg></div><dt>{ m.Label }</dt><dd>
- if m.Icon=="invoices" {
- { m.Value }
- } else {
- { Money(m.Value) } <small>USD</small>
+ <div class="dashboard-snapshot" id="kpis" hx-get="/app/_partials/dashboard/kpis" hx-trigger="every 30s" hx-swap="outerHTML">
+ <section class="finance-card balance-card" aria-labelledby="cash-heading">
+ <div class="finance-card-top"><span class="currency-chip">USD <span>Devise de l’espace</span></span><a class="circle-link" href="/app/cash" aria-label="Consulter la trésorerie">@LandingArrow()</a></div>
+ <h2 id="cash-heading">Trésorerie disponible</h2><p class="balance-value">{ Money(s.Cash) } <small>USD</small></p><p class="finance-note">Solde issu des opérations comptabilisées</p>
+ <div class="balance-actions"><a class="button" href="/app/invoices/sales/new">Créer une vente @LandingArrow()</a><a class="button secondary" href="/app/cash">Voir les paiements</a></div>
+ </section>
+ <section class="finance-card revenue-card" aria-labelledby="revenue-heading">
+ <div class="finance-card-top"><a class="revenue-link" href="/app/accounting">Journal comptable @LandingArrow()</a><svg class="revenue-symbol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M4 17 10 11 14 15 21 5M15 5h6v6"/></svg></div>
+ <h2 id="revenue-heading">Chiffre d’affaires</h2><p class="revenue-value">{ Money(s.Revenue) } <small>USD</small></p>
+ <dl class="revenue-details"><div><dt>Valeur du stock</dt><dd>{ Money(s.Inventory) } <small>USD</small></dd></div><div><dt>Factures comptabilisées</dt><dd>{ strconv.Itoa(s.Count) }</dd></div></dl>
+ </section>
+ <section class="finance-card spending-card" aria-labelledby="spending-heading">
+ <div class="finance-card-top"><h2 id="spending-heading">@LandingIcon("inventory") Achats et dépenses</h2><a href="/app/accounting" class="circle-link" aria-label="Voir les achats au journal">@LandingArrow()</a></div>
+ <div class="spending-chart"><svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="50" fill="none" stroke="currentColor" stroke-width="7" class="spending-track"/>
+ if spending(s.Purchases,s.Expenses).Chart {
+ <circle cx="60" cy="60" r="50" pathLength="100" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-dasharray={ spending(s.Purchases,s.Expenses).Share+" 100" } transform="rotate(-90 60 60)" class="spending-arc"/>
  }
- </dd></div>
+ </svg><div><strong>{ spending(s.Purchases,s.Expenses).Total }</strong><span>USD au total</span></div></div>
+ <dl class="spending-legend"><div><dt><span class="legend-dot goods"></span>Marchandises</dt><dd>{ Money(s.Purchases) } USD</dd></div><div><dt><span class="legend-dot charges"></span>Dépenses</dt><dd>{ Money(s.Expenses) } USD</dd></div></dl>
+ if !spending(s.Purchases,s.Expenses).Chart {
+ <p class="finance-note">Répartition affichée pour des montants positifs.</p>
  }
- </dl>
+ </section>
+ <section class="finance-card dues-card" aria-labelledby="dues-heading"><div class="finance-card-top"><h2 id="dues-heading">@LandingIcon("cash") Règlements à suivre</h2><a class="circle-link" href="/app/invoices" aria-label="Consulter les factures à régler">@LandingArrow()</a></div>
+ <dl class="dues-list"><div><dt>À encaisser des clients</dt><dd>{ Money(s.Receivables) } <small>USD</small></dd></div><div><dt>À payer aux fournisseurs</dt><dd>{ Money(s.Payables) } <small>USD</small></dd></div><div class="cost-line"><dt>Coût des ventes</dt><dd>{ Money(s.Cost) } <small>USD</small></dd></div></dl><p class="finance-note">Ouvrez une facture pour enregistrer un règlement partiel.</p></section>
+ </div>
 }
 
 templ Dashboard(s reporting.Summary,invoices []documents.Invoice,orgName string) {
  @Layout("Vue d’ensemble","dashboard",orgName) {
- <div class="dashboard-heading"><div><h1>Vue d’ensemble</h1><p>Vos documents et leurs effets sur l’activité, en un coup d’œil.</p></div><a class="button dashboard-primary" href="/app/invoices/new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Importer une facture</a></div>
- <nav class="dashboard-actions" aria-label="Accès rapides"><a href="/app/invoices/sales/new">Créer une vente</a><a href="/app/invoices">Toutes les factures</a><a href="/app/inventory">Consulter le stock</a><a href="/app/accounting">Journal comptable</a><a href="/app/cash">Trésorerie</a></nav>
- @KPI(s)
- <div class="dashboard-overview"><section class="panel activity-panel"><div class="panel-body"><div class="dashboard-section-heading"><div><h2>Situation de l’activité</h2><p>Soldes issus des factures comptabilisées</p></div><a href="/app/accounting">Voir le journal</a></div><dl class="activity-list"><div><dt>Achats de marchandises</dt><dd>{ Money(s.Purchases) } USD</dd></div><div><dt>Dépenses</dt><dd>{ Money(s.Expenses) } USD</dd></div><div><dt>Créances clients</dt><dd>{ Money(s.Receivables) } USD</dd></div><div><dt>Coût des ventes</dt><dd>{ Money(s.Cost) } USD</dd></div><div><dt>Dettes fournisseurs</dt><dd>{ Money(s.Payables) } USD</dd></div></dl></div></section>
- <section class="dashboard-workflow"><img src="/static/dashboard-growth.jpg" alt=""/><div class="dashboard-workflow-content"><h2>Chaque opération part d’un document.</h2><p>Importez, vérifiez puis comptabilisez. Les soldes se mettent à jour après validation.</p><a href="/app/invoices/new">Commencer avec une facture <span aria-hidden="true">→</span></a></div></section></div>
- <section class="dashboard-recent"><div class="dashboard-section-heading"><div><h2>Factures récentes</h2><p>Ouvrez un document pour consulter son état et ses lignes.</p></div><a href="/app/invoices">Voir toutes les factures</a></div>@InvoiceTable(invoices)</section>
+ <div class="dashboard-heading"><div><h1>Votre activité, au clair.</h1><p>Bienvenue dans l’espace { orgName }.</p></div><a class="button dashboard-primary" href="/app/invoices/new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Importer une facture</a></div>
+ <nav class="dashboard-tabs" aria-label="Accès rapides"><a href="/app/dashboard" aria-current="page">Vue d’ensemble</a><a href="/app/invoices">Factures</a><a href="/app/inventory">Stock</a><a href="/app/accounting">Comptabilité</a><a href="/app/cash">Trésorerie</a></nav>
+ <div class="dashboard-grid">@KPI(s)
+ <section class="finance-card recent-card" aria-labelledby="recent-heading"><div class="finance-card-top"><h2 id="recent-heading">@LandingIcon("invoices") Factures récentes</h2><a href="/app/invoices" class="circle-link" aria-label="Voir toutes les factures">@LandingArrow()</a></div>
+ if len(invoices)==0 {
+ <div class="recent-empty"><h3>Votre première facture commence ici.</h3><p>Importez un document, puis vérifiez ses données.</p><a href="/app/invoices/new">Importer une facture</a></div>
+ } else {
+ <ul class="recent-invoice-list">
+ for index,i:=range invoices {
+ if index<4 {
+ <li><a href={ templ.SafeURL(InvoiceURL(i.ID)) }><span class="recent-invoice-icon">@LandingIcon("invoices")</span><span class="recent-invoice-copy"><strong>{ i.Partner }</strong><span>{ i.Number } · { i.IssueDate }</span><span class={ statusClass(i.Status) }>{ Status(i.Status) }</span></span><span class="recent-invoice-amount">{ Money(i.Total) }<small>{ i.Currency }</small></span></a></li>
+ }
+ }
+ </ul><a class="recent-all" href="/app/invoices">Toutes les factures @LandingArrow()</a>
+ }
+ </section></div><p class="dashboard-data-note">Les soldes proviennent des opérations comptabilisées de votre entreprise. Actualisation des soldes toutes les 30 secondes.</p>
  }
 }
 
