@@ -13,6 +13,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--run", type=Path, default=training.OUT)
     parser.add_argument("--dataset", type=Path)
+    parser.add_argument("--split", choices=["validation", "test"], default="validation")
     args = parser.parse_args()
     import torch
     torch.set_num_threads(2)
@@ -26,7 +27,15 @@ def main():
     base = AutoModelForVision2Seq.from_pretrained(training.MODEL, revision=training.REVISION, local_files_only=True, torch_dtype=torch.bfloat16, attn_implementation="sdpa").to("cuda")
     model = PeftModel.from_pretrained(base, root / "adapter").eval()
     model.config.use_cache = True
-    rows = training.dataset_split(args.dataset, check_training_ocr=False)[1] if args.dataset else json.loads((root / "split.json").read_text(encoding="utf-8"))["validation"]
+    if args.dataset:
+        training.dataset_split(args.dataset, check_training_ocr=False)
+        rows = [r for r in json.loads((args.dataset / "annotations.json").read_text(encoding="utf-8")) if r["split"] == args.split]
+    else:
+        if args.split == "test":
+            raise ValueError("A separate test dataset is required")
+        rows = json.loads((root / "split.json").read_text(encoding="utf-8"))["validation"]
+    if not rows:
+        raise ValueError("Requested evaluation partition is empty")
     results = []
     for row in rows:
         with Image.open(row["image"]) as raw:
@@ -46,10 +55,10 @@ def main():
         results.append({"id": row["id"], "expected": row["target"], "generated": text, "parsed": parsed,
                         "exact_fields": {key: bool(parsed is not None and key in parsed and parsed[key] == value) for key, value in row["target"].items()}})
         print(json.dumps(results[-1], ensure_ascii=False), flush=True)
-    report = {"documents": len(rows), "valid_json": sum(r["parsed"] is not None for r in results),
+    report = {"split": args.split, "documents": len(rows), "valid_json": sum(r["parsed"] is not None for r in results),
               "exact_fields": {key: sum(r["exact_fields"][key] for r in results) for key in rows[0]["target"]},
               "scope": "synthetic held-out images; layouts may overlap training; not real-document accuracy", "predictions": results}
-    output_name = "ocr-generation-evaluation.json" if args.dataset else "generation-evaluation.json"
+    output_name = ("test-generation-evaluation.json" if args.split == "test" else "ocr-generation-evaluation.json") if args.dataset else "generation-evaluation.json"
     (root / output_name).write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     print(json.dumps({k: v for k, v in report.items() if k != "predictions"}), flush=True)
 
