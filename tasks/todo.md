@@ -26,5 +26,10 @@
 - [x] Trial balance and account-filtered general ledger, with organization isolation and exact balances.
 - [x] Author customer sales directly as structured JSON, render printable invoices and export persisted invoice data without OCR.
 - [x] Import external invoices through file or camera input; post operating expenses without inventory effects.
+- [x] Add middle-row OCR/table evidence, one bounded corrective vision pass, supplier-recipient diagnostics and exact product/payment checks.
+- [x] Offer isolated US demo charts at registration and a read-only, rule-checked US account proposal with visible retrieval sources.
+- [x] Train a small US purchase/sales/cash-bank role LoRA with a train-only RAG corpus, explicit supported tax cases and public source provenance; keep accuracy claims limited to synthetic validation.
+- [x] Verify US nonrecoverable purchase tax in stock/expense cost, buyer sales tax liability and cash/bank effects in isolated PostgreSQL tests and a synthetic HTTP workspace.
+- [ ] Add an explicit, persisted cent-level invoice tax-rounding policy and independently accountant-reviewed US journal evaluation before claiming broader real-invoice tax coverage.
 - [ ] Production multi-user identity, authorization and operational hardening.
 - [ ] Finish broader blueprint capabilities listed in docs/implementation-status.md.

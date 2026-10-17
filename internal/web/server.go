@@ -93,6 +93,7 @@ func (s *Server) Router() http.Handler {
 		r.Get("/app/invoices/{id}/document", s.document)
 		r.Post("/app/invoices/{id}/review", s.saveReview)
 		r.Post("/app/invoices/{id}/post", s.post)
+		r.Get("/app/invoices/{id}/accounting-proposal", s.accountingProposal)
 		r.Post("/app/invoices/{id}/settlements", s.settle)
 		r.Post("/app/invoices/{id}/reopen", s.reopen)
 		r.Get("/app/inventory", s.inventory)
@@ -251,7 +252,12 @@ func (s *Server) renderReview(w http.ResponseWriter, r *http.Request, invoice do
 		}
 		due = balance.String()
 	}
-	s.render(w, r, pages.Review(invoice, csrf(r), message, organizationName(r), payments, due))
+	organization, err := s.Posting.Identity.Get(r.Context(), organizationID(r))
+	if err != nil {
+		s.fail(w, r, err)
+		return
+	}
+	s.render(w, r, pages.Review(invoice, csrf(r), message, organizationName(r), payments, due, organization.AccountingStandard))
 }
 
 func (s *Server) upload(w http.ResponseWriter, r *http.Request) {

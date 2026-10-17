@@ -18,7 +18,7 @@ type fakeAuth struct {
 func (a fakeAuth) Authenticate(context.Context, string, string) (identity.Session, error) {
 	return a.session, a.err
 }
-func (a fakeAuth) Register(context.Context, string, string, string, string) (identity.Session, error) {
+func (a fakeAuth) Register(context.Context, string, string, string, string, string) (identity.Session, error) {
 	return a.session, a.err
 }
 func (a fakeAuth) CreateSession(context.Context, identity.Session) (string, error) {

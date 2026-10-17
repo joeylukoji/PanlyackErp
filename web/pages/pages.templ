@@ -3,6 +3,7 @@ package pages
 import (
  "fmt"
  "strconv"
+ "strings"
  "github.com/shopspring/decimal"
  "github.com/google/uuid"
  documents "panlyackerp/internal/modules/documents/domain"
@@ -97,7 +98,7 @@ templ Register(csrf,message string) {
 if message!="" {
 <div class="notice error" role="alert">{ message }</div>
 }
-<form method="post" action="/register"><input type="hidden" name="csrf" value={ csrf }/><label for="organization_name">Nom de votre entreprise</label><input id="organization_name" name="organization_name" autocomplete="organization" required minlength="2" maxlength="80"/><label for="email">Adresse e-mail</label><input id="email" name="email" type="email" autocomplete="email" required maxlength="254"/><label for="password">Mot de passe</label><input id="password" name="password" type="password" autocomplete="new-password" required minlength="12" maxlength="128"/><p class="auth-field-help">12 caractères minimum.</p><label for="password_confirm">Confirmer le mot de passe</label><input id="password_confirm" name="password_confirm" type="password" autocomplete="new-password" required minlength="12" maxlength="128"/><button type="submit">Créer mon espace</button></form><p class="auth-help">Vous avez déjà un compte ? <a href="/login">Se connecter</a></p></div></section>
+<form method="post" action="/register"><input type="hidden" name="csrf" value={ csrf }/><label for="accounting_standard">Référentiel comptable de l’entreprise</label><select id="accounting_standard" name="accounting_standard"><option value="US_GAAP" selected>Américain · US GAAP (plan de démonstration)</option><option value="FR_PCG">Français · PCG</option></select><p class="auth-field-help">Choisi à la création, sans conversion des anciens comptes.</p><label for="organization_name">Nom de votre entreprise</label><input id="organization_name" name="organization_name" autocomplete="organization" required minlength="2" maxlength="80"/><label for="email">Adresse e-mail</label><input id="email" name="email" type="email" autocomplete="email" required maxlength="254"/><label for="password">Mot de passe</label><input id="password" name="password" type="password" autocomplete="new-password" required minlength="12" maxlength="128"/><p class="auth-field-help">12 caractères minimum.</p><label for="password_confirm">Confirmer le mot de passe</label><input id="password_confirm" name="password_confirm" type="password" autocomplete="new-password" required minlength="12" maxlength="128"/><button type="submit">Créer mon espace</button></form><p class="auth-help">Vous avez déjà un compte ? <a href="/login">Se connecter</a></p></div></section>
 <aside class="auth-story"><img class="auth-story-photo" src="/static/auth-handoff.webp" alt=""/><div class="auth-story-inner"><div class="auth-story-mark" aria-hidden="true"><img src="/static/panlyack-logo.png" alt="" width="1254" height="1254"/></div><h2>Essayez le parcours complet.</h2><p>Importez une facture, confirmez ses données, puis voyez les effets sur le stock, la comptabilité et la trésorerie.</p><div class="auth-steps"><span>Importer</span><span>Vérifier</span><span>Comptabiliser</span></div><span class="auth-footnote">PanlyackERP · Espace de démonstration local</span></div></aside></main></body></html>
 }
 
@@ -121,6 +122,31 @@ templ Layout(title,active,orgName string) {
  <a class="sidebar-home" href="/" aria-label="Retour au site Panlyack" title="Retour au site Panlyack"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 11 9-8 9 8M5 10v11h14V10M9 21v-7h6v7"/></svg><span class="sidebar-item-label">Site Panlyack</span><span class="sidebar-tooltip" aria-hidden="true">Site Panlyack</span></a></div></aside>
  <div class="main-column"><header class="topbar"><span class="organization-name">{ title }</span><span class="topbar-right"><span class="org-meta">{ orgName } <span aria-hidden="true">·</span> USD</span><a class="logout-link" href="/logout">Déconnexion</a></span></header><main id="main" class="content">{ children... }</main></div>
  </div></body></html>
+}
+
+templ AccountingSuggestion(message string, rows []SuggestedAccount, references []AccountingReference) {
+<section class="section-heading"><p>{ message }</p>
+if len(rows)>0 {
+<div class="table-scroll"><table><thead><tr><th>Sens</th><th>Compte</th><th>Libellé</th><th class="amount">Montant USD</th></tr></thead><tbody>
+for _,row:=range rows {
+<tr><td>{ row.Side }</td><td>{ row.Code }</td><td>{ row.Name }</td><td class="amount">{ row.Amount }</td></tr>
+}
+</tbody></table></div>
+}
+if len(references)>0 {
+<p class="muted">Références consultées (contexte, sans autorisation de comptabilisation) :</p><ul>
+for _,ref:=range references {
+<li>
+if strings.HasPrefix(ref.Source,"https://") {
+<a href={ templ.URL(ref.Source) } target="_blank" rel="noopener noreferrer">{ ref.ID }</a>
+} else {
+<span>{ ref.ID } · { ref.Source }</span>
+}
+</li>
+}
+</ul>
+}
+</section>
 }
 
 templ Heading(title,description string) {
@@ -219,7 +245,7 @@ templ Upload(csrf,message,orgName,category string) {
 }
 }
 
-templ Review(i documents.Invoice,csrf,message,orgName string, settlements []cash.Settlement, due string) {
+templ Review(i documents.Invoice,csrf,message,orgName string, settlements []cash.Settlement, due, standard string) {
  @Layout("Vérifier la facture","invoices",orgName) {
  @Heading(i.Number,"Vérifiez le document et les données avant de comptabiliser.") {
 <div class="actions"><span class={ statusClass(i.Status) }>{ Status(i.Status) }</span><a class="button secondary" href={ templ.SafeURL(InvoiceURL(i.ID)+"/json") }>Télécharger le JSON</a></div>
@@ -268,7 +294,11 @@ if i.ExtractionMode=="structured" {
 <select id="direction" name="direction"><option value="PURCHASE" selected?={ i.Direction=="PURCHASE" }>Achat</option><option value="SALE" selected?={ i.Direction=="SALE" }>Vente</option></select>
 }
 </div>
- <div><label for="currency">Devise</label><select id="currency" name="currency"><option value="USD">USD</option></select></div>
+ <div><label for="currency">Devise</label><select id="currency" name="currency">
+for _,currency:=range []string{"USD","EUR","CDF","ZAR"} {
+<option value={ currency } selected?={ i.Currency==currency }>{ currency }</option>
+}
+</select></div>
  <div><label for="total">Total, taxes incluses</label><input id="total" name="total" inputmode="decimal" value={ i.Total } readonly?={ i.ExtractionMode=="structured" } required/></div>
  </div><div class="section-heading"><h3 class="section-title">Lignes de facture</h3><p class="muted">
 if i.PurchaseCategory=="expense" {
@@ -283,12 +313,16 @@ Les SKU désignent les produits. Pour une vente, utilisez des SKU déjà en stoc
 <div><label for={ method }>{ paymentLabel(method) }</label><input id={ method } name={ "payment_"+method } value={ paymentAmount(i,method) } inputmode="decimal"/></div>
 }
  </div>
+ if standard=="US_GAAP" && i.Status!="POSTED" {
+<p class="notice">Politique US simplifiée : taxe d’achat non récupérable incluse dans le coût ; taxe de vente imposée à l’acheteur, collectée pour l’administration. Vérifiez le traitement et le taux applicables à votre juridiction avant confirmation. La use tax, les taxes imposées au vendeur et les déclarations fiscales ne sont pas gérées.</p>
+}
  if i.Status=="NEEDS_REVIEW" {
 <div class="actions"><button name="action" value="confirm">Confirmer les données</button><button class="secondary" name="action" value="save">Enregistrer</button></div>
 }
  </fieldset></form>
  if i.Status=="CONFIRMED" {
 <div class="actions"><form method="post" action={ templ.SafeURL(InvoiceURL(i.ID)+"/post") }><input type="hidden" name="csrf" value={ csrf }/><button>Comptabiliser la facture</button></form><form method="post" action={ templ.SafeURL(InvoiceURL(i.ID)+"/reopen") }><input type="hidden" name="csrf" value={ csrf }/><button class="secondary">Reprendre la vérification</button></form></div>
+<div class="section-heading"><h3 class="section-title">Proposition de comptes US</h3><p class="muted">Pilote US avec références RAG. Les taxes d’achat sont traitées comme non récupérables et incluses dans le coût ; les taxes de vente sont supposées imposées à l’acheteur et collectées pour l’administration. Vérifiez la juridiction et le traitement avant de confirmer. Aucun taux n’est déduit automatiquement. Le modèle ne peut pas enregistrer d’écriture.</p></div><button type="button" class="secondary" hx-get={ InvoiceURL(i.ID)+"/accounting-proposal" } hx-target="#accounting-proposal" hx-disabled-elt="this">Proposer les comptes<span class="htmx-indicator"> · Analyse en cours…</span></button><div id="accounting-proposal" aria-live="polite"></div>
 }
  if i.Status=="POSTED" {
 <div class="actions"><a href="/app/accounting">Voir le journal</a><a href="/app/dashboard">Voir les soldes</a></div>

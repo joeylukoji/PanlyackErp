@@ -60,6 +60,42 @@ func TestSettlementEntry(t *testing.T) {
 	}
 }
 
+func TestUSNonrecoverablePurchaseTaxIsCostAndBuyerSalesTaxIsLiability(t *testing.T) {
+	for _, expense := range []bool{false, true} {
+		op := Operation{Direction: "PURCHASE", Expense: expense, Net: decimal.NewFromInt(100), Tax: decimal.NewFromInt(8), Total: decimal.NewFromInt(108)}
+		entry, err := (USGAAP{}).Build(op)
+		if err != nil {
+			t.Fatal(err)
+		}
+		role := "INVENTORY"
+		if expense {
+			role = "OPERATING_EXPENSE"
+		}
+		found := false
+		for _, line := range entry.Lines {
+			if line.Role == "INPUT_TAX" {
+				t.Fatal("US purchase invented a recoverable input-tax asset")
+			}
+			if line.Role == role && line.Debit.Equal(op.Total) {
+				found = true
+			}
+		}
+		if !found {
+			t.Fatal("nonrecoverable tax missing from purchase cost")
+		}
+	}
+	entry, err := (USGAAP{}).Build(Operation{Direction: "SALE", Net: decimal.NewFromInt(100), Tax: decimal.NewFromInt(8), Total: decimal.NewFromInt(108)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, line := range entry.Lines {
+		if line.Role == "OUTPUT_TAX" && line.Credit.Equal(decimal.NewFromInt(8)) {
+			return
+		}
+	}
+	t.Fatal("buyer sales tax was not separated from revenue")
+}
+
 func TestExpenseDebitsOperatingExpensesInsteadOfInventory(t *testing.T) {
 	op := Operation{Direction: "PURCHASE", Expense: true, Net: decimal.NewFromInt(100), Tax: decimal.NewFromInt(10), Total: decimal.NewFromInt(110), Payments: []Payment{{Method: "CASH", Amount: decimal.NewFromInt(30)}}}
 	for _, engine := range []PostingEngine{FrenchPCG{}, USGAAP{}} {
@@ -72,7 +108,11 @@ func TestExpenseDebitsOperatingExpensesInsteadOfInventory(t *testing.T) {
 			if line.Role == "INVENTORY" || line.Role == "COGS" {
 				t.Fatal("expense affected stock accounts")
 			}
-			if line.Role == "OPERATING_EXPENSE" && line.Debit.Equal(op.Net) {
+			expected := op.Net
+			if _, us := engine.(USGAAP); us {
+				expected = op.Total
+			}
+			if line.Role == "OPERATING_EXPENSE" && line.Debit.Equal(expected) {
 				found = true
 			}
 		}

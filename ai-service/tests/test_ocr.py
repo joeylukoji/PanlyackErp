@@ -96,6 +96,20 @@ def test_ocr_prompt_rejects_unbounded_page_count():
             ocr.evidence_prompt(pages)
 
 
+def test_table_evidence_keeps_middle_rows_and_groups_columns_without_using_labels():
+    lines = [{"text": f"Product {index}", "box": [[10, index*20], [60,index*20], [60,index*20+10],[10,index*20+10]]} for index in range(120)]
+    page = {"text": "observed text", "width": 200, "height": 2500, "lines": lines,
+            "labels": {"products": ["SECRET"]}}
+    result = json.loads(ocr.evidence_prompt([page]).split("\n", 2)[2])[0]
+    assert any(40 <= int(line["text"].split()[-1]) <= 70 for line in result["lines"])
+    assert result["rows"] and result["ocr_lines_omitted"] > 0
+    assert "SECRET" not in json.dumps(result)
+    grouped = ocr.row_groups([{"text": "2", "bounds": [.7,.2,.75,.22]},
+                              {"text": "Rice", "bounds": [.1,.2,.4,.22]},
+                              {"text": "Soap", "bounds": [.1,.3,.4,.32]}])
+    assert grouped == [[1, 0], [2]]
+
+
 def test_ocr_rejects_invalid_image():
     with pytest.raises(ValueError, match="Invalid OCR image"):
         ocr.prepare_image(b"not an image")

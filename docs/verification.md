@@ -1,5 +1,14 @@
 # Verification record
 
+## US accounting RAG and OCR product pipeline — 2026-10-17
+
+- `go test ./...`, `go vet ./...`, template generation and the new currency/policy page test passed. Registration and posting integration suites also passed with a live TEST_DATABASE_URL in their isolated databases, covering tax-inclusive US inventory/expense cost, buyer sales-tax liability, bank receipts, organization scope, rollback and idempotency.
+- `.venv/Scripts/python -m pytest ai-service/tests -q`: 67 passed, with the existing Starlette/httpx deprecation warning. Includes retrieval partition isolation, policy rejection, bounded process invocation, corpus hash mismatch, inference-slot retention after timeouts, exact product/payment diagnostics and header-focused supplier correction without changing quantities or currency.
+- Four-epoch local US role LoRA+RAG training completed on 184 synthetic examples: 46/46 validation role matches, peak CUDA allocation 2.654 GiB. Its 46 test examples and the 108 invoice test images remain unused. Repeated structural templates in retrieval make this a synthetic interpolation result, not an independent accounting accuracy result.
+- Real HTTP checks exercised OCR/Gemma upload, explicit synthetic manual confirmation, read-only RAG/US-chart proposal, repeated purchase/sale posting and exact stock/cash/AP/AR balances in a new QA organization. A final actual isolated CPU worker also proposed the matching roles for a taxed, partially bank-paid sale including COGS (HTTP 200, 40.41 seconds).
+- The actual registration page exposes the US/FR chart selector. Optional runtime configuration is active locally; no model/data download was resumed. See [implementation, artifacts and limitations](advanced-invoice-pipeline.md).
+- Final real OCR/Gemma smoke: HTTP 200 in 25.48 seconds, correct issuer and EUR currency, all four product rows retained. Header-only correction cannot change product money/quantity/currency. A printed-cent rounding discrepancy remains visible. Tailwind build also passed.
+
 Environment: Windows, Go 1.26.4, Python 3.13.5, PostgreSQL 17 in Docker. Container build targets Go 1.27.2 but that toolchain download did not complete locally.
 
 ## Passed

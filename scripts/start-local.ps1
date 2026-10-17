@@ -5,7 +5,9 @@ if (!(Test-Path .env)) { throw 'Copy .env.example to .env and configure its secr
 Get-Content .env | ForEach-Object {
     if ($_ -match '^([A-Z_]+)=(.*)$') { [Environment]::SetEnvironmentVariable($Matches[1], $Matches[2], 'Process') }
 }
-if (!(Test-Path .venv/Scripts/python.exe)) { throw 'Install the Python environment described in README.md first.' }
+$aiPython = if ($env:AI_PYTHON) { $env:AI_PYTHON } else { Join-Path $projectRoot '.venv/Scripts/python.exe' }
+if (!(Test-Path -LiteralPath $aiPython)) { throw 'Install the configured AI_PYTHON environment described in README.md first.' }
+$aiPython = (Resolve-Path -LiteralPath $aiPython).Path
 foreach ($port in @(8080, 8091)) {
     if (Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue) {
         throw "Port $port is already in use. Stop the existing local services first."
@@ -18,7 +20,7 @@ go build -o bin/erp.exe ./cmd/erp
 if ($LASTEXITCODE) { throw 'Go build failed.' }
 $started = @()
 try {
-    $ai = Start-Process -FilePath "$projectRoot/.venv/Scripts/python.exe" -ArgumentList '-m uvicorn app.main:app --app-dir ai-service --host 127.0.0.1 --port 8091' -WorkingDirectory $projectRoot -WindowStyle Hidden -PassThru -RedirectStandardOutput var/ai.log -RedirectStandardError var/ai-error.log
+    $ai = Start-Process -FilePath $aiPython -ArgumentList '-m uvicorn app.main:app --app-dir ai-service --host 127.0.0.1 --port 8091' -WorkingDirectory $projectRoot -WindowStyle Hidden -PassThru -RedirectStandardOutput var/ai.log -RedirectStandardError var/ai-error.log
     $started += $ai
     $erp = Start-Process -FilePath "$projectRoot/bin/erp.exe" -WorkingDirectory $projectRoot -WindowStyle Hidden -PassThru -RedirectStandardOutput var/erp.log -RedirectStandardError var/erp-error.log
     $started += $erp

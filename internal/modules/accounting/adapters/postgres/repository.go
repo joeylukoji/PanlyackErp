@@ -14,16 +14,36 @@ type Posting = ports.Posting
 type JournalRow = ports.JournalRow
 type BalanceRow = ports.BalanceRow
 
-func (r Repository) SeedDemo(ctx context.Context, org, sourceID string) error {
+func (r Repository) Accounts(ctx context.Context, org string) ([]ports.Account, error) {
+	rows, err := r.DB.Conn(ctx).Query(ctx, `SELECT role,code,name FROM accounting.accounts WHERE organization_id=$1 ORDER BY code`, org)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	result := []ports.Account{}
+	for rows.Next() {
+		row := ports.Account{}
+		if err := rows.Scan(&row.Role, &row.Code, &row.Name); err != nil {
+			return nil, err
+		}
+		result = append(result, row)
+	}
+	return result, rows.Err()
+}
+
+func (r Repository) SeedDemo(ctx context.Context, org, sourceID, standard string) error {
+	if standard != "US_GAAP" && standard != "FR_PCG" {
+		return errors.New("unsupported accounting standard")
+	}
 	conn := r.DB.Conn(ctx)
 	_, err := conn.Exec(ctx, `INSERT INTO accounting.accounts(organization_id,role,code,name)
-		SELECT $1,role,code,name FROM (VALUES
-		('CASH','531','Cash'),('BANK','512','Bank'),('MOBILE_MONEY','517','Mobile money'),
-		('CARD','511','Card settlement'),('INVENTORY','37','Merchandise inventory'),
-		('INPUT_TAX','44566','Deductible input tax'),('OUTPUT_TAX','44571','Collected output tax'),
-		('ACCOUNTS_PAYABLE','401','Trade payables'),('ACCOUNTS_RECEIVABLE','411','Trade receivables'),
-		('SALES','707','Merchandise sales'),('COGS','6037','Cost of goods sold'),
-		('OPERATING_EXPENSE','628','Operating expenses'),('EQUITY','101','Opening equity')) AS accounts(role,code,name)`, org)
+  SELECT $1,role,CASE WHEN $2='US_GAAP' THEN us_code ELSE fr_code END,name FROM (VALUES
+  ('CASH','531','1000','Cash'),('BANK','512','1010','Bank'),('MOBILE_MONEY','517','1020','Mobile money'),
+  ('CARD','511','1030','Card settlement'),('INVENTORY','37','1200','Merchandise inventory'),
+  ('INPUT_TAX','44566','1300','Recoverable input tax (policy required)'),('OUTPUT_TAX','44571','2100','Tax payable'),
+  ('ACCOUNTS_PAYABLE','401','2000','Trade payables'),('ACCOUNTS_RECEIVABLE','411','1100','Trade receivables'),
+  ('SALES','707','4000','Merchandise sales'),('COGS','6037','5000','Cost of goods sold'),
+  ('OPERATING_EXPENSE','628','6100','Operating expenses'),('EQUITY','101','3000','Opening equity')) AS accounts(role,fr_code,us_code,name)`, org, standard)
 	if err != nil {
 		return err
 	}

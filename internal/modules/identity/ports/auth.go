@@ -18,7 +18,7 @@ type Session struct {
 
 type Auth interface {
 	Authenticate(context.Context, string, string) (Session, error)
-	Register(context.Context, string, string, string, string) (Session, error)
+	Register(context.Context, string, string, string, string, string) (Session, error)
 	CreateSession(context.Context, Session) (string, error)
 	Session(context.Context, string) (Session, error)
 	RevokeSession(context.Context, string) error

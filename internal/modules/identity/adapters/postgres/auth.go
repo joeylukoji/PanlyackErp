@@ -53,7 +53,10 @@ func (r AuthRepository) SetOwner(ctx context.Context, organizationID, email, pas
 	})
 }
 
-func (r AuthRepository) Register(ctx context.Context, organizationID, name, email, password string) (ports.Session, error) {
+func (r AuthRepository) Register(ctx context.Context, organizationID, name, email, password, standard string) (ports.Session, error) {
+	if standard != "FR_PCG" && standard != "US_GAAP" {
+		return ports.Session{}, errors.New("unsupported accounting standard")
+	}
 	name = strings.TrimSpace(name)
 	email = strings.ToLower(strings.TrimSpace(email))
 	address, err := mail.ParseAddress(email)
@@ -68,7 +71,7 @@ func (r AuthRepository) Register(ctx context.Context, organizationID, name, emai
 	userID := uuid.NewString()
 	conn := r.DB.Conn(ctx)
 	if _, err = conn.Exec(ctx, `INSERT INTO identity.organizations(id,name,currency,accounting_standard,inventory_method)
-		VALUES($1,$2,'USD','FR_PCG','FIFO')`, organizationID, name); err != nil {
+ VALUES($1,$2,'USD',$3,'FIFO')`, organizationID, name, standard); err != nil {
 		return ports.Session{}, err
 	}
 	if _, err = conn.Exec(ctx, `INSERT INTO identity.users(id,email,password_hash) VALUES($1,$2,$3)`, userID, email, hash); err != nil {

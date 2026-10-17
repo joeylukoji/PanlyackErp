@@ -12,3 +12,5 @@ type JournalRow struct{ Reference, Date, SourceID, Code, Name, Debit, Credit str
 type BalanceRow struct {
 	Code, Name, Debit, Credit, DebitBalance, CreditBalance string
 }
+
+type Account struct{ Role, Code, Name string }

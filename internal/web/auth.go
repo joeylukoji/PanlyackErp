@@ -114,7 +114,15 @@ func (s *Server) register(w http.ResponseWriter, r *http.Request) {
 		s.render(w, r, pages.Register(csrf(r), "Vérifiez le nom, l’adresse e-mail et le mot de passe (12 caractères minimum)."))
 		return
 	}
-	token, err := s.Registration.Register(r.Context(), name, email, password)
+	standard := r.PostFormValue("accounting_standard")
+	if standard == "" {
+		standard = "FR_PCG"
+	}
+	if standard != "FR_PCG" && standard != "US_GAAP" {
+		s.render(w, r, pages.Register(csrf(r), "Choisissez un référentiel comptable disponible."))
+		return
+	}
+	token, err := s.Registration.Register(r.Context(), name, email, password, standard)
 	if errors.Is(err, identity.ErrEmailExists) {
 		s.render(w, r, pages.Register(csrf(r), "Cette adresse e-mail possède déjà un compte. Connectez-vous."))
 		return

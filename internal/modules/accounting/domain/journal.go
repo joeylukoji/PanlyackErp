@@ -30,11 +30,11 @@ type PostingEngine interface {
 type FrenchPCG struct{}
 type USGAAP struct{}
 
-func (FrenchPCG) Build(op Operation) (Entry, error) { return build(op) }
-func (USGAAP) Build(op Operation) (Entry, error)    { return build(op) }
+func (FrenchPCG) Build(op Operation) (Entry, error) { return build(op, true) }
+func (USGAAP) Build(op Operation) (Entry, error)    { return build(op, false) }
 
 // Both policies use perpetual inventory; account codes are resolved per organization.
-func build(op Operation) (Entry, error) {
+func build(op Operation, recoverPurchaseTax bool) (Entry, error) {
 	e := Entry{Lines: []Line{}}
 	if !op.Net.Add(op.Tax).Equal(op.Total) || !op.Total.IsPositive() || op.Net.IsNegative() || op.Tax.IsNegative() || op.Cost.IsNegative() {
 		return e, errors.New("invalid accounting amounts")
@@ -72,12 +72,18 @@ func build(op Operation) (Entry, error) {
 		return e, errors.New("overpayment")
 	}
 	if purchase {
-		if op.Expense {
-			add("OPERATING_EXPENSE", op.Net, true)
-		} else {
-			add("INVENTORY", op.Net, true)
+		purchaseCost := op.Net
+		if !recoverPurchaseTax {
+			purchaseCost = op.Total
 		}
-		add("INPUT_TAX", op.Tax, true)
+		if op.Expense {
+			add("OPERATING_EXPENSE", purchaseCost, true)
+		} else {
+			add("INVENTORY", purchaseCost, true)
+		}
+		if recoverPurchaseTax {
+			add("INPUT_TAX", op.Tax, true)
+		}
 		add("ACCOUNTS_PAYABLE", op.Total.Sub(paid), false)
 	} else {
 		add("SALES", op.Net, false)

@@ -1,6 +1,7 @@
 # Implementation status
 
 ## Delivered and exercised
+- Local OCR+Gemma product-row checks and bounded corrective views; an experimental US account-role LoRA/RAG advisor with source links, rule comparison and human confirmation. New registrations offer US/FR demo charts. US nonrecoverable purchase tax is included in stock/expense cost; buyer-imposed collected sales tax is separated from revenue. See [scope, training results and limits](advanced-invoice-pipeline.md).
 - Local Go app, PostgreSQL, migrations, FastAPI, health endpoints, timeouts, logs and shutdown.
 - Seeded USD organization, FR PCG policy, FIFO and opening balances with balanced opening journal.
 - File type/size checks, generated storage keys, SHA-256, image/PDF preview.
@@ -24,7 +25,7 @@
 - Production identity: invited teammates, multi-user roles, password recovery, rate limits, HTTPS cookies and deployment hardening.
 - OCR quality assessment against human references, field-level extraction confidence UX and extraction retry queue. The real-model pilot exposes date-format failures and mislabeled source documents that need review before training.
 - Independent product/category/warehouse CRUD, manual inventory adjustments, returns and losses.
-- User-configurable organization/valuation policy and US chart of accounts; fiscal-year management UI.
+- Editing existing organization/valuation policies and charts; fiscal-year management UI. New registrations offer FR/US demo charts.
 - Bank reconciliation and configurable expense categories/accounts; a single operating-expense treatment is delivered.
 - Persisted reversal/correction workflow (the pure reversal rule is tested, but no reversal command/UI is delivered).
 - Period filters, revenue/cashflow series, low-stock alerts and top-product projections. The general ledger is currently capped at 400 recent lines per selected account.

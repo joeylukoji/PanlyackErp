@@ -130,7 +130,7 @@ For real-scan reference correction, start `./scripts/review-invoices.ps1` and op
 - Production mode refuses startup. Do not expose these local-demo ports through a tunnel or a public reverse proxy.
 - Financial amounts use decimal strings and `shopspring/decimal`; quantities have six decimal places, money four. UI amounts display two places; stored amounts retain four.
 - The seeded fiscal year is 2026. Missing or closed fiscal periods reject posting.
-- Accounting policies currently share perpetual-inventory arithmetic. The demo uses a minimal FR PCG role mapping. US GAAP arithmetic is tested; a configurable US chart and country-specific tax compliance are not implemented.
+- Registration offers minimal FR PCG and US demo charts. The US policy includes nonrecoverable purchase tax in cost and separates buyer-imposed sales tax collected for government. Tax applicability, jurisdiction and rates require operator confirmation; general tax compliance is not implemented. See the [advanced invoice pipeline and local RAG advisor](docs/advanced-invoice-pipeline.md) for scope, optional runtime configuration, training provenance and measured limitations.
 - No stock or accounting module imports another business module. Workflow ports coordinate them. PostgreSQL transactions are resolved by adapters through context.
 
 ## Skills used

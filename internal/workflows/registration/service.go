@@ -16,7 +16,7 @@ type Service struct {
 		SeedDemo(context.Context, string, string) error
 	}
 	Accounting interface {
-		SeedDemo(context.Context, string, string) error
+		SeedDemo(context.Context, string, string, string) error
 	}
 	Reporting interface {
 		SeedDemo(context.Context, string) error
@@ -24,19 +24,19 @@ type Service struct {
 }
 
 // Register provisions an isolated demo workspace and its first session atomically.
-func (s Service) Register(ctx context.Context, name, email, password string) (string, error) {
+func (s Service) Register(ctx context.Context, name, email, password, standard string) (string, error) {
 	var token string
 	err := s.UOW.WithinTransaction(ctx, func(ctx context.Context) error {
 		orgID := uuid.NewString()
 		sourceID := uuid.NewString()
-		session, err := s.Identity.Register(ctx, orgID, name, email, password)
+		session, err := s.Identity.Register(ctx, orgID, name, email, password, standard)
 		if err != nil {
 			return fmt.Errorf("create workspace owner: %w", err)
 		}
 		if err := s.Cash.SeedDemo(ctx, orgID, sourceID); err != nil {
 			return fmt.Errorf("seed cash: %w", err)
 		}
-		if err := s.Accounting.SeedDemo(ctx, orgID, sourceID); err != nil {
+		if err := s.Accounting.SeedDemo(ctx, orgID, sourceID, standard); err != nil {
 			return fmt.Errorf("seed accounting: %w", err)
 		}
 		if err := s.Reporting.SeedDemo(ctx, orgID); err != nil {

@@ -78,6 +78,15 @@ func (s Service) Post(ctx context.Context, org, id, actor string) error {
 			for _, line := range invoice.Lines {
 				q, _ := decimal.NewFromString(line.Quantity)
 				p, _ := decimal.NewFromString(line.UnitPrice)
+				if organization.AccountingStandard == "US_GAAP" && invoice.Direction == "PURCHASE" {
+					rate, _ := decimal.NewFromString(line.TaxRate)
+					net := q.Mul(p).Round(4)
+					gross := net.Add(net.Mul(rate).Div(decimal.NewFromInt(100)).Round(4))
+					p = gross.DivRound(q, 10)
+					if !q.Mul(p).Round(4).Equal(gross) {
+						return errors.New("tax-inclusive stock cost exceeds supported precision")
+					}
+				}
 				items = append(items, inventory.Item{SKU: line.SKU, Name: line.Name, Unit: line.Unit, Quantity: q, Price: p})
 			}
 			cost, err = s.Inventory.Apply(ctx, inventory.Command{OrganizationID: org, SourceID: id, Direction: invoice.Direction, Method: organization.InventoryMethod, Items: items})
@@ -115,6 +124,10 @@ func (s Service) Post(ctx context.Context, org, id, actor string) error {
 		if err := s.Audit.Append(ctx, org, actor, "InvoicePosted", id, invoice); err != nil {
 			return err
 		}
-		return s.Reporting.Project(ctx, reporting.Posted{Expense: invoice.PurchaseCategory == "expense", OrganizationID: org, SourceID: id, Direction: invoice.Direction, Net: totals.Net, Cost: cost, Paid: totals.Paid, Due: totals.Total.Sub(totals.Paid)})
+		bookNet := totals.Net
+		if organization.AccountingStandard == "US_GAAP" && invoice.Direction == "PURCHASE" {
+			bookNet = totals.Total
+		}
+		return s.Reporting.Project(ctx, reporting.Posted{Expense: invoice.PurchaseCategory == "expense", OrganizationID: org, SourceID: id, Direction: invoice.Direction, Net: bookNet, Cost: cost, Paid: totals.Paid, Due: totals.Total.Sub(totals.Paid)})
 	})
 }
