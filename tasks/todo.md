@@ -21,6 +21,7 @@
 - [x] Self-service test registration with isolated organization and complete demo provisioning.
 - [x] Public responsive Panlyack landing page inspired by supplied references, with working navigation to login and registration; desktop/mobile browser checks completed.
 - [x] Align authentication and dashboard with landing typography/lime palette, retain the sidebar and existing forms, and render decimal-derived spending plus real summary/recent-invoice fields.
+- [x] Modernize sidebar navigation with persistent desktop collapse, accessible icon labels/tooltips and independent mobile drawer; verify on the live database-backed app.
 - [x] Partial settlement of posted invoices, including cash, accounting and reporting effects.
 - [x] Trial balance and account-filtered general ledger, with organization isolation and exact balances.
 - [x] Author customer sales directly as structured JSON, render printable invoices and export persisted invoice data without OCR.

@@ -27,7 +27,7 @@ func TestLandingIsPublicAndLinksToExistingAuthenticationPages(t *testing.T) {
 			}
 		}
 	}
-	for _, path := range []string{"landing.css", "manrope.ttf", "panlyack-logo.png", "dashboard-growth.jpg", "nav-icons.svg"} {
+	for _, path := range []string{"landing.css", "manrope.ttf", "panlyack-logo.png", "dashboard-growth.jpg", "nav-icons.svg", "sidebar.js"} {
 		response := httptest.NewRecorder()
 		handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "http://localhost/static/"+path, nil))
 		if response.Code != http.StatusOK || response.Body.Len() == 0 {
