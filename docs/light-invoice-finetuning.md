@@ -24,7 +24,7 @@ Runtime logs are `D:/PanlyackERP-training/training.stdout.log` and `training.std
 
 Official model documentation: https://huggingface.co/HuggingFaceTB/SmolVLM-256M-Instruct
 
-OCR context and a 150-image preparation pack are documented in [OCR support and augmentation](ocr-and-augmentation.md). The training/evaluation scripts now accept an explicit dataset and output directory so the first pilot remains preserved. A new training run on that pack has not been started.
+OCR context, augmentation and the subsequently completed image-plus-OCR training run are documented in [OCR support and augmentation](ocr-and-augmentation.md). The training/evaluation scripts accept an explicit dataset and output directory so this first pilot remains preserved. The new run uses the expanded pack's 142 training images and eight validation images; its 108 test documents remain unused for training or generation evaluation.
 
 ## Completed local experiment — 2026-10-17
 

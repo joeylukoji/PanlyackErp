@@ -14,6 +14,7 @@
 - [x] Prepare a separate 50-local + 50-public review pack with original labels, field dictionary, provenance and verified image hashes; human references remain pending.
 - [x] Add optional OCR evidence to vision extraction and prepare 150 images with mild photometric variants, unchanged field targets and parent-separated validation.
 - [x] Discover additional local invoice labels and reserve unseen invoice identities in a separate test partition, including their labelled field crops.
+- [x] Complete lightweight image-plus-OCR LoRA training on 142 training images and evaluate eight validation images; preserve 108 unused test documents and keep the adapter experimental.
 - [x] Deliver a local HTMX annotation workbench with explicit document classification, human confirmation, exclusions and partial-reference export.
 - [x] Local owner login, membership check, session revocation and protected pages.
 - [x] Self-service test registration with isolated organization and complete demo provisioning.

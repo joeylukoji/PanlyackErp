@@ -46,4 +46,38 @@ All 150 images decoded and matched their recorded hashes. All 150 OCR caches mat
 
 An exploratory comparison reused the first pilot's adapter without retraining. On the same eight original held-out images, adding the bounded OCR transcript produced four parseable JSON objects and exact field matches number 0/8, supplier 1/8, printed date 3/8 and total 0/8. Baseline image-only results were five parseable JSON objects and matches 0/8, 2/8, 4/8 and 1/8 respectively. This is not an improvement. Initial structured-context diagnostics were stopped after observing the small model copying OCR observation fields; those traces were retained outside Git. The final comparison uses a quoted text transcript and repeats the requested output fields after it.
 
-The OCR pipeline and augmented pack are delivered, but the existing adapter has not learned to use OCR context. No second fine-tuning run has been launched and no adapter is promoted to ERP extraction. The optional Ollama pipeline uses its existing constrained invoice schema; the exploratory SmolVLM generation comparison does not. Real OCR-plus-Ollama extraction quality and new-layout generalization remain unmeasured. Preparation data, caches, diagnostics, model outputs and local HTTP processes stay outside Git.
+That comparison preceded the OCR training run recorded below. No adapter is promoted to ERP extraction. The optional Ollama pipeline uses its existing constrained invoice schema; the exploratory SmolVLM generation comparison does not. Real OCR-plus-Ollama extraction quality and new-layout generalization remain unmeasured. Preparation data, caches, diagnostics, model outputs and local HTTP processes stay outside Git.
+
+## Completed OCR-assisted fine-tuning — 2026-10-17
+
+Run directory: `D:/PanlyackERP-training/invoice-smolvlm-ocr-lora`. The original image-only adapter remains unchanged. Training used the expanded pack's 142 training images (77 original parents and 65 mild variants), with the same eight original validation images. The 108 test documents were excluded from optimization and generation evaluation; the loader checked their metadata and image integrity only. Supplied synthetic field labels remain unconfirmed by a human.
+
+The pinned SmolVLM-256M base revision is `7e3e67edbbed1bf9888184d9df282b700a323964`; its weight checksum was verified before training. Three epochs ran on the local RTX 4060 Laptop GPU with BF16, batch size one, gradient accumulation four, learning rate `1e-4`, and rank-eight LoRA on language attention query/value projections. Only 460,800 parameters were trainable. No dependency or training-script changes were needed. Training took approximately 14 minutes; peak Torch tensor allocation was 5.764 GiB, while observed total device use reached approximately 7.9 GB. The saved adapter weights occupy 1,860,096 bytes; processor files and the base model are required separately.
+
+| Checkpoint | Validation loss |
+| --- | ---: |
+| Before training | 1.584853 |
+| Epoch 1 | 0.895696 |
+| Epoch 2 | 0.487637 |
+| Epoch 3, saved | 0.362865 |
+
+Deterministic generation on the eight validation images used the same image-plus-OCR prompt as training, with a 160-token output limit. Counts below compare values exactly with supplied target strings; JSON validity means a parseable object, not full ERP schema validation.
+
+| Measure | Original image-only pilot | New OCR-trained adapter |
+| --- | ---: | ---: |
+| Parseable JSON objects | 5/8 | 8/8 |
+| Invoice number | 0/8 | 3/8 |
+| Supplier | 2/8 | 5/8 |
+| Printed date | 4/8 | 8/8 |
+| Total, exact string | 1/8 | 5/8 |
+
+One total mismatch is formatting only (`35.50` versus `35.5`); two other totals are materially wrong. Some predictions confuse telephone numbers with invoice numbers, or payment/address text with suppliers. This is a comparison of two complete pilot setups, not a controlled measurement of OCR's isolated contribution: augmentation and training exposure also changed. The small synthetic validation set reuses generator layouts and cannot establish real-document accuracy. Only four header fields were trained, with no line-item or accounting classification training.
+
+The completed training report is `report.json`; all eight predictions are retained in `ocr-generation-evaluation.json` in the run directory. Standard output/error logs are `D:/PanlyackERP-training/ocr-training.*.log` and `ocr-evaluation.*.log`. The run remains experimental (`production_ready=false`), is not loaded into the ERP, and requires human confirmation before any business posting. The next evaluation can use the reserved test partition after freezing this checkpoint; no test-driven tuning has been performed.
+
+```powershell
+# Reproduce only validation generation for the completed run.
+D:/PanlyackERP-training/venv/Scripts/python.exe scripts/evaluate-light-invoices.py --run D:/PanlyackERP-training/invoice-smolvlm-ocr-lora --dataset D:/PanlyackERP-training/dataset-expanded --split validation
+```
+
+The existing training/evaluation scripts executed successfully; no software test suite was rerun for this documentation-only update.
