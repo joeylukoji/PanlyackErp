@@ -24,6 +24,8 @@ Runtime logs are `D:/PanlyackERP-training/training.stdout.log` and `training.std
 
 Official model documentation: https://huggingface.co/HuggingFaceTB/SmolVLM-256M-Instruct
 
+OCR context and a 150-image preparation pack are documented in [OCR support and augmentation](ocr-and-augmentation.md). The training/evaluation scripts now accept an explicit dataset and output directory so the first pilot remains preserved. A new training run on that pack has not been started.
+
 ## Completed local experiment — 2026-10-17
 
 The verified model completed all three epochs on 77 training images with eight held-out images. Baseline validation loss was 1.8270; losses after each epoch were 1.4323, 0.9906 and 0.6569. Peak tensor memory allocation measured by PyTorch was 3.609 GiB; observed total device memory including runtime reservations was approximately 4.3 GiB. The adapter weights are 1,860,096 bytes; tokenizer/processor files and the frozen base model are required separately.

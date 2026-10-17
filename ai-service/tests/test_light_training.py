@@ -39,3 +39,15 @@ def test_training_refuses_missing_total_target(tmp_path):
     (tmp_path / "public_50/annotations.json").write_text(json.dumps([row]), encoding="utf-8")
     with pytest.raises(ValueError, match="Missing supplied target"):
         module.records()
+
+
+def test_ocr_context_must_match_image_and_never_uses_target_labels(tmp_path):
+    module = load_training(tmp_path)
+    cache = tmp_path / "ocr.json"
+    cache.write_text(json.dumps({"image_sha256": "wrong", "text": "Invoice ABC"}), encoding="utf-8")
+    row = {"sha256": "actual", "ocr_file": str(cache), "target": {"number": "SECRET-TARGET"}}
+    with pytest.raises(ValueError, match="does not match"):
+        module.prompt_for(row)
+    cache.write_text(json.dumps({"image_sha256": "actual", "text": "Invoice ABC"}), encoding="utf-8")
+    prompt = module.prompt_for(row)
+    assert "Invoice ABC" in prompt and "SECRET-TARGET" not in prompt

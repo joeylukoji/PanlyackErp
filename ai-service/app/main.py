@@ -16,7 +16,7 @@ def get_extractor() -> Extractor:
     if mode == "demo":
         return DemoExtractor()
     if mode == "ollama":
-        return OllamaExtractor(os.getenv("MODEL_BASE_URL", "http://127.0.0.1:11434"), os.getenv("MODEL_NAME", "gemma3:4b"))
+        return OllamaExtractor(os.getenv("MODEL_BASE_URL", "http://127.0.0.1:11434"), os.getenv("MODEL_NAME", "gemma3:4b"), use_ocr=os.getenv("OCR_ENABLED", "0") == "1")
     raise HTTPException(503, "Unsupported extractor configuration")
 
 
@@ -36,6 +36,12 @@ async def ready(extractor: Annotated[Extractor, Depends(get_extractor)]) -> dict
     if not os.getenv("AI_API_KEY"):
         raise HTTPException(503, "AI_API_KEY is required")
     if isinstance(extractor, OllamaExtractor):
+        if extractor.use_ocr:
+            try:
+                from app.ocr import warmup
+                await asyncio.to_thread(warmup)
+            except (ImportError, FileNotFoundError, RuntimeError) as exc:
+                raise HTTPException(503, "OCR dependencies or local model files unavailable") from exc
         try:
             async with httpx.AsyncClient(timeout=3.0) as client:
                 response = await client.get(f"{extractor.base_url}/api/tags")
@@ -58,8 +64,13 @@ async def extract(request: ExtractionRequest, extractor: Annotated[Extractor, De
         raise HTTPException(429, "Extraction is busy; retry shortly")
     async with slots:
         try:
-            return await extractor.extract(request)
+            async with asyncio.timeout(90):
+                return await extractor.extract(request)
+        except TimeoutError as exc:
+            raise HTTPException(504, "Extraction timed out; no data has been posted") from exc
         except ValueError as exc:
             raise HTTPException(422, "Document could not be extracted; check the file and limit PDFs to 5 pages") from exc
+        except (ImportError, FileNotFoundError, RuntimeError) as exc:
+            raise HTTPException(503, "Local extraction engine unavailable") from exc
         except (httpx.HTTPError, KeyError) as exc:
             raise HTTPException(502, "Model service failed; no data has been posted") from exc

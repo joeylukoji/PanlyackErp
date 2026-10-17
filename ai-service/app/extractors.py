@@ -24,9 +24,10 @@ class DemoExtractor:
 
 
 class OllamaExtractor:
-    def __init__(self, base_url: str, model: str) -> None:
+    def __init__(self, base_url: str, model: str, use_ocr: bool = False) -> None:
         self.base_url = base_url.rstrip("/")
         self.model = model
+        self.use_ocr = use_ocr
 
     async def extract(self, request: ExtractionRequest) -> Invoice:
         images = [request.file_base64]
@@ -43,11 +44,18 @@ class OllamaExtractor:
             "Do not invent payment evidence; leave payments empty unless payment is explicit. "
             "Use low confidence and warnings for uncertainty. Return JSON matching the supplied schema."
         )
+        if self.use_ocr:
+            from app.ocr import evidence_prompt, read_document
+            evidence = [await asyncio.to_thread(read_document, base64.b64decode(image)) for image in images]
+            prompt += evidence_prompt(evidence)
+            prompt += "\nEnd of OCR observations. Return only the invoice JSON matching the supplied invoice schema."
         async with httpx.AsyncClient(timeout=90.0) as client:
             response = await client.post(f"{self.base_url}/api/generate", json={"model": self.model, "prompt": prompt, "images": images, "format": Invoice.model_json_schema(), "stream": False, "options": {"temperature": 0}})
             response.raise_for_status()
         invoice = Invoice.model_validate_json(response.json()["response"])
-        invoice.extraction_mode = "ollama"
+        invoice.extraction_mode = "ollama_ocr" if self.use_ocr else "ollama"
+        if self.use_ocr:
+            invoice.warnings = (["OCR-assisted draft: confirm all fields against the document."] + invoice.warnings)[:20]
         return invoice
 
 
