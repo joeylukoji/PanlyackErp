@@ -81,3 +81,19 @@ D:/PanlyackERP-training/venv/Scripts/python.exe scripts/evaluate-light-invoices.
 ```
 
 The existing training/evaluation scripts executed successfully; no software test suite was rerun for this documentation-only update.
+
+## Follow-up corrections — 2026-10-17
+
+The optional Ollama OCR prompt now carries up to 48 recognized lines per page, with normalized `[left, top, right, bottom]` bounds in the EXIF-oriented resized page coordinate space. It retains observations from both the beginning and end of long pages. The combined text/geometry payload remains valid JSON capped at 16,000 characters across at most five pages. Prompt guidance distinguishes invoice numbers from telephone/order numbers, suppliers from customers/payment text, and final payable totals from subtotals/tax/paid amounts. No source annotation boxes or target values enter this evidence. This change affects the optional runtime OCR prompt only: the saved SmolVLM adapter and its training/evaluation prompt remain unchanged, and extraction still requires human confirmation. Quality improvement from the new runtime prompt has not been measured on real invoices.
+
+Pilot scoring now reports `normalized_fields` alongside the original `exact_fields`. Only schema-compatible decimal strings are compared with `Decimal` equality for the total; floats, currency text, comma notation, scientific notation and nonfinite values are rejected. Other fields remain exact. The saved eight-document predictions can be rescored offline without model execution:
+
+```powershell
+.venv/Scripts/python.exe scripts/evaluate-light-invoices.py --rescore D:/PanlyackERP-training/invoice-smolvlm-ocr-lora/ocr-generation-evaluation.json
+```
+
+This writes a separate `ocr-generation-evaluation-normalized.json` and refuses to overwrite it. The original report/predictions remain intact. Numerically correct totals are 6/8, versus 5/8 exact strings; this corrects a metric, not the model. The other counts remain number 3/8, supplier 5/8 and date 8/8. The 108 test images were not evaluated.
+
+Codex visually inspected all eight validation images and recorded the image hashes and per-field observations in `D:/PanlyackERP-training/invoice-smolvlm-ocr-lora/visual-label-audit.json`. This is agent inspection, not human-confirmed reference data. Invoices 001, 002 and 006 visibly print `id-997`, `id-925` and `id-222`; those supplied invoice numbers are not erroneous internal identifiers. The supplier headings of invoices 003 and 005 are cropped out or unreadable at the top edge; invoice 004 has a partially visible heading at the top edge. Their supplied supplier values should not be treated as fully observable extraction references without an uncropped image or a separately versioned field-visibility review. Printed numbers, dates and totals agree with supplied targets on the eight inspected images. No labels, original images, frozen dataset partitions or trained weights were automatically replaced, and the training partition has not received this visual audit.
+
+Verification: 50 Python tests passed, including the API request carrying OCR bounds, bounded evidence serialization, source-label isolation, exact decimal precision and non-destructive offline rescoring. The existing Starlette/httpx deprecation warning remains. These checks establish pipeline behavior, not model accuracy.
