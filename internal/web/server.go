@@ -74,7 +74,7 @@ func (s *Server) Router() http.Handler {
 	r.Post("/register", s.register)
 	r.Post("/logout", s.logout)
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "/app/dashboard", http.StatusSeeOther)
+		s.render(w, r, pages.Landing())
 	})
 	r.Group(func(r chi.Router) {
 		r.Use(s.requireSession)

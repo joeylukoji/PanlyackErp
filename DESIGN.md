@@ -13,3 +13,7 @@ The four user-supplied images are bundled as local static assets: the handoff im
 The user-supplied monochrome P logo is bundled as panlyack-logo.png and used in authentication, navigation, the workspace badge and the favicon. The original image is preserved; clipped containers frame its whitespace at small sizes. Adjacent brand text provides the accessible name.
 
 The accounting screen presents a trial balance above the journal. Account codes link directly to their ledger lines; a compact selector allows switching accounts or returning to all entries. Wide financial tables scroll within their panels on small screens.
+
+## Public landing page
+
+The public `/` route uses Persuade mode, separate from the workspace. Its composition takes the supplied HTML's product-led sections and the supplied financial-page screenshot's navy/teal surfaces and lime accent. Self-hosted Manrope provides its display and body typography; `landing.css` is isolated from workspace styles. The actual Panlyack logo and existing growth photograph are reused. The hero invoice is explicitly illustrative, with no fabricated customer counts, reviews or performance claims. Feature descriptions cover implemented invoice, inventory, accounting and payment flows. Native `details` provides the mobile hamburger and FAQ without a JavaScript dependency; all sign-in and registration links lead to `/login` and `/register`. Reduced-motion preferences disable the single product entrance. The footer and FAQ identify the local demonstration scope.
