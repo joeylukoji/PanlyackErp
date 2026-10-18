@@ -1,5 +1,14 @@
 # Verification record
 
+## Connected local application startup — 2026-10-18
+
+- Windows excluded ports 8029–8228 after reboot, so both original application ports failed with WinError 10013. PostgreSQL's existing container and named data volume were preserved. Local `.env` now points ERP to 18080 and FastAPI to 18091; the launcher uses configured loopback URLs consistently for binding, readiness and its output.
+- `scripts/test-start-local.ps1`: four isolated preflight checks passed (custom ports, duplicate ports, non-loopback AI URL and occupied port). The real `start-local.ps1 -Check` passed before launch. Startup now checks port binding before migrations and detects early service exit.
+- The first cold accounting call hit its previous 50-second worker timeout. Budgets are now 75 seconds for the isolated worker, 90 for FastAPI and 100 for the ERP client, below the existing 120-second HTTP write budget. Validation and posting requirements are unchanged.
+- `.venv/Scripts/python -m pytest ai-service/tests -q`: 67 passed with the existing Starlette/httpx warning. `go test ./internal/web` and `go vet ./internal/web` passed.
+- Live tests used authenticated ERP routes in the existing isolated QA organization: the fine-tuned accounting model plus RAG returned a rule-checked, sourced proposal in 39.17 seconds; an uploaded known validation image passed OCR plus Gemma in 50.01 seconds, returning four product rows, AFRICA OFFICE & TECH and EUR. No invoice was posted, and dashboard financial balances before/after were identical. These are connection checks, not new accuracy measurements. Evidence: ignored `var/connected-models-smoke-20261018.json` and `var/connected-accounting-proposal.html`.
+- ERP and AI readiness both passed. The running application URL is `http://127.0.0.1:18080`; model inference remains serialized and accounting weights are released between requests to preserve RAM.
+
 ## US accounting RAG and OCR product pipeline — 2026-10-17
 
 - `go test ./...`, `go vet ./...`, template generation and the new currency/policy page test passed. Registration and posting integration suites also passed with a live TEST_DATABASE_URL in their isolated databases, covering tax-inclusive US inventory/expense cost, buyer sales-tax liability, bank receipts, organization scope, rollback and idempotency.

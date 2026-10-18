@@ -67,7 +67,7 @@ def test_isolated_model_worker_has_bounded_input_timeout_and_no_shell(monkeypatc
     result = propose(facts())
     assert result.policy_match is True and result.posting_authorized is False
     assert calls[0][0][-1] == "--predict"
-    assert calls[0][1]["timeout"] == 50 and not calls[0][1].get("shell", False)
+    assert 0 < calls[0][1]["timeout"] <= 80 and not calls[0][1].get("shell", False)
     assert AccountingFacts.model_validate_json(calls[0][1]["input"]).products == ["Rice"]
 
 

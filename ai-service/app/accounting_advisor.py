@@ -157,7 +157,7 @@ def propose(facts: AccountingFacts) -> AccountAdvice:
                                   text=True, encoding="utf-8", env=environment,
                                   creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0) as worker:
                 try:
-                    output, _ = worker.communicate(facts.model_dump_json(), timeout=50)
+                    output, _ = worker.communicate(facts.model_dump_json(), timeout=75)
                 except subprocess.TimeoutExpired:
                     # Windows venv launchers may own another Python process: stop the whole worker tree.
                     if os.name == "nt":

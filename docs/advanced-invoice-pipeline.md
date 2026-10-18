@@ -57,6 +57,10 @@ A first CPU/Ollama smoke failed because the 6,470-token prompt exceeded the mode
 
 Local model/vision calls are serialized to limit memory pressure. Slots stay occupied until actual work finishes even if the HTTP request times out. Account-role inference runs on CPU in a separate bounded process, returning model/import memory to the OS after each proposal; Windows timeout cleanup stops the worker process tree. An earlier attempt to run inference, builds and tests concurrently exhausted workstation memory. Do not run training and the full inference stack simultaneously on this 16 GB RAM / 8 GB VRAM machine. Gemma itself is not fine-tuned by this slice; the existing experimental image-header LoRA is preserved and is not misrepresented as a product-line model.
 
+The local accounting worker has a 75-second budget, inside the 90-second AI endpoint and 100-second ERP client budgets (the HTTP server write budget is 120 seconds). A cold start on the occupied workstation exceeded the earlier 50-second worker limit on 2026-10-18; increasing the bounded initialization allowance does not change validation or posting rules. Models are connected to the application but not all kept resident in RAM.
+
+Windows reserved ports 8029–8228 after reboot on 2026-10-18, blocking both former application endpoints. The local `.env` now uses `HTTP_ADDR=127.0.0.1:18080` and `AI_BASE_URL=http://127.0.0.1:18091`. The launcher honors those values for binding/readiness, probes for reserved/occupied ports before migrations, and fails promptly if a service exits. Defaults in `.env.example` remain unchanged. `scripts/start-local.ps1 -Check` is a non-starting preflight, and `scripts/test-start-local.ps1` tests configuration in temporary isolated fixtures.
+
 ## Verification completed
 
 - `go test ./...`, `go vet ./...`, template generation and the page-currency/US-policy regression test passed.

@@ -55,7 +55,7 @@ async def live() -> dict[str, str]:
 @app.post("/v1/accounting/propose", response_model=AccountAdvice, dependencies=[Depends(authorize)])
 async def accounting_proposal(facts: AccountingFacts) -> AccountAdvice:
     try:
-        return await run_inference(lambda: asyncio.to_thread(propose, facts), 60)
+        return await run_inference(lambda: asyncio.to_thread(propose, facts), 90)
     except TimeoutError as exc:
         raise HTTPException(504, "Accounting advisor timed out; no posting performed") from exc
     except (ImportError, OSError, RuntimeError) as exc:

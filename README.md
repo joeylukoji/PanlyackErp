@@ -40,6 +40,8 @@ The start script loads `.env`, applies migrations, builds Go, and starts Go/Fast
 
 The ERP uses port 8080, extraction uses 8091 and the separate annotation workbench uses 8093. If Windows reserves PostgreSQL's default host port 55432, set `POSTGRES_PORT` to an available port (for example 15432) and use the same port in the local `DATABASE_URL`, then recreate only the Compose PostgreSQL service. Its named data volume is retained.
 
+The local launcher respects `HTTP_ADDR` and `AI_BASE_URL` for binding and readiness checks. If Windows reserves the default application ports, choose two available loopback ports, for example `HTTP_ADDR=127.0.0.1:18080` and `AI_BASE_URL=http://127.0.0.1:18091`, and open the URL printed by the launcher. This workstation currently uses those ports. `./scripts/start-local.ps1 -Check` verifies the interpreter path and endpoint availability without migrating or starting services. `./scripts/test-start-local.ps1` exercises custom ports and rejection of duplicate, remote and occupied endpoints in an isolated fixture.
+
 Use `http://127.0.0.1:8080/register` and `http://127.0.0.1:8080/login` for working authentication. A design preview without the configured identity/registration services can display these forms but cannot submit them (`Registration unavailable` / `Authentication unavailable`). Start the complete application with `scripts/start-local.ps1` after PostgreSQL is healthy; a preview server is not an alternative runtime.
 
 For a foreground Go development process after starting the AI service, use `./scripts/dev.ps1`.

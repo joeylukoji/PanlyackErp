@@ -105,7 +105,7 @@ func (s *Server) accountingProposal(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	body, _ := json.Marshal(map[string]any{"operation": operation, "settlement": settlement, "payment_methods": methods, "products": products, "cost_recognized": false, "tax_treatment": taxTreatment})
-	ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), 100*time.Second)
 	defer cancel()
 	request, err := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(s.Config.AIURL, "/")+"/v1/accounting/propose", bytes.NewReader(body))
 	if err != nil {
@@ -114,7 +114,7 @@ func (s *Server) accountingProposal(w http.ResponseWriter, r *http.Request) {
 	}
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("Authorization", "Bearer "+s.Config.AIKey)
-	response, err := (&http.Client{Timeout: 60 * time.Second}).Do(request)
+	response, err := (&http.Client{Timeout: 100 * time.Second}).Do(request)
 	if err != nil {
 		notice("Service de proposition indisponible. Aucune écriture enregistrée.")
 		return
