@@ -55,13 +55,14 @@ type Server struct {
 
 func (s *Server) Router() http.Handler {
 	r := chi.NewRouter()
-	r.Use(middleware.RequestID, middleware.Recoverer, s.security, s.logRequest)
+	r.Use(middleware.RequestID, middleware.Recoverer, s.language, s.security, s.logRequest)
+	r.Get("/language", s.switchLanguage)
 	r.Get("/health/live", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("ok")) })
 	r.Get("/health/ready", func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
 		defer cancel()
 		if err := s.Pool.Ping(ctx); err != nil {
-			http.Error(w, "database unavailable", 503)
+			s.userError(w, r, "database unavailable", 503)
 			return
 		}
 		w.Write([]byte("ready"))
@@ -125,7 +126,7 @@ func (s *Server) fail(w http.ResponseWriter, r *http.Request, err error) {
 		code = 404
 		message = "Document ou produit introuvable."
 	}
-	http.Error(w, message, code)
+	s.userError(w, r, message, code)
 }
 func safeMessage(err error) string {
 	var pgerr *pgconn.PgError
@@ -191,7 +192,7 @@ func (s *Server) accounting(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		if !found {
-			http.Error(w, "Unknown account", http.StatusBadRequest)
+			s.userError(w, r, "Unknown account", http.StatusBadRequest)
 			return
 		}
 	}
@@ -313,12 +314,12 @@ func (s *Server) saveReview(w http.ResponseWriter, r *http.Request) {
 	}
 	edited, err := invoiceForm(r, current)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		s.userError(w, r, err.Error(), http.StatusBadRequest)
 		return
 	}
 	edited.Version, err = strconv.Atoi(r.PostFormValue("version"))
 	if err != nil {
-		http.Error(w, "Invalid version", http.StatusBadRequest)
+		s.userError(w, r, "Invalid version", http.StatusBadRequest)
 		return
 	}
 	if current.Status == "NEEDS_REVIEW" {

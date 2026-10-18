@@ -26,6 +26,8 @@ The script prompts for a password. The ERP container applies Goose migrations be
 
 ## Local Windows development
 
+The public site and ERP support French and English. Use the FR/EN control to keep the selected language across navigation, authentication, HTMX updates and printable invoices. Business data is unchanged. The landing page displays monthly USD plans at $49 for 200 invoices, $79 for 500 and $150 for unlimited invoices; registration currently opens a demonstration workspace without collecting payment or enforcing plan quotas. See [localization maintenance](docs/development/localization.md).
+
 Prerequisites: Go, Python 3.12+, Node.js and Docker Desktop. Assets and generated templ files are committed, so Node is only required for CSS changes. The container targets Go 1.27.2; the local build was verified with Go 1.26.4 because the 1.27 toolchain download failed on this network.
 
 ```powershell

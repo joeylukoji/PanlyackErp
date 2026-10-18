@@ -6,7 +6,7 @@
   const apply = (collapsed) => {
     document.documentElement.dataset.sidebarCollapsed = String(collapsed);
     button.setAttribute("aria-expanded", String(!collapsed));
-    const label = collapsed ? "Développer le menu" : "Réduire le menu";
+    const label = collapsed ? button.dataset.translateExpand : button.dataset.translateCollapse;
     button.setAttribute("aria-label", label);
     button.title = label;
   };

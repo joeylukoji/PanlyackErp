@@ -174,9 +174,9 @@ func (s *Server) accountingProposal(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	message := "Proposition expérimentale vérifiée par le moteur de règles. Les comptes et montants ci-dessous proviennent de votre plan et des calculs Go ; rien n’est enregistré avant « Comptabiliser la facture »."
+	message := uiText(r, "Proposition expérimentale vérifiée par le moteur de règles. Les comptes et montants ci-dessous proviennent de votre plan et des calculs Go ; rien n’est enregistré avant « Comptabiliser la facture ».")
 	if invoice.Direction == "SALE" {
-		message += " Le coût des ventes et la sortie de stock seront calculés lors de la comptabilisation selon la méthode de votre organisation ; ils ne figurent pas dans cet aperçu."
+		message += uiText(r, " Le coût des ventes et la sortie de stock seront calculés lors de la comptabilisation selon la méthode de votre organisation ; ils ne figurent pas dans cet aperçu.")
 	}
 	s.render(w, r, pages.AccountingSuggestion(message, rows, proposal.References))
 }

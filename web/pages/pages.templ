@@ -1,473 +1,752 @@
 package pages
 
 import (
- "fmt"
- "strconv"
- "strings"
- "github.com/shopspring/decimal"
- "github.com/google/uuid"
- documents "panlyackerp/internal/modules/documents/domain"
- inventory "panlyackerp/internal/modules/inventory/application"
- accounting "panlyackerp/internal/modules/accounting/ports"
- cash "panlyackerp/internal/modules/cash/ports"
- reporting "panlyackerp/internal/modules/reporting/ports"
+	"fmt"
+	"panlyackerp/internal/platform/locale"
+	"strconv"
+	"strings"
+	"github.com/shopspring/decimal"
+	"github.com/google/uuid"
+	documents "panlyackerp/internal/modules/documents/domain"
+	inventory "panlyackerp/internal/modules/inventory/application"
+	accounting "panlyackerp/internal/modules/accounting/ports"
+	cash "panlyackerp/internal/modules/cash/ports"
+	reporting "panlyackerp/internal/modules/reporting/ports"
 )
 
-func Money(s string) string { d,err:=decimal.NewFromString(s);if err!=nil{return s};return d.StringFixed(2) }
+func Money(s string) string {
+	d, err := decimal.NewFromString(s)
+	if err != nil {
+		return s
+	}
+	return d.StringFixed(2)
+}
 func SettlementAmount(s string) string {
- d, err := decimal.NewFromString(s)
- if err != nil { return s }
- if d.Equal(d.Round(2)) { return d.StringFixed(2) }
- return d.StringFixed(4)
+	d, err := decimal.NewFromString(s)
+	if err != nil {
+		return s
+	}
+	if d.Equal(d.Round(2)) {
+		return d.StringFixed(2)
+	}
+	return d.StringFixed(4)
 }
 func SettlementBalanceLabel(direction string) string {
- if direction == "SALE" { return "Restant à encaisser" }
- return "Restant à payer"
+	if direction == "SALE" {
+		return "Restant à encaisser"
+	}
+	return "Restant à payer"
 }
-type BalanceTotals struct { Debit, Credit decimal.Decimal }
+
+type BalanceTotals struct{ Debit, Credit decimal.Decimal }
+
 func TrialBalanceTotals(rows []accounting.BalanceRow) BalanceTotals {
- totals := BalanceTotals{}
- for _, row := range rows {
-  debit, _ := decimal.NewFromString(row.DebitBalance)
-  credit, _ := decimal.NewFromString(row.CreditBalance)
-  totals.Debit = totals.Debit.Add(debit)
-  totals.Credit = totals.Credit.Add(credit)
- }
- return totals
+	totals := BalanceTotals{}
+	for _, row := range rows {
+		debit, _ := decimal.NewFromString(row.DebitBalance)
+		credit, _ := decimal.NewFromString(row.CreditBalance)
+		totals.Debit = totals.Debit.Add(debit)
+		totals.Credit = totals.Credit.Add(credit)
+	}
+	return totals
 }
 func AccountLabel(code, fallback string) string {
- switch code {
- case "101": return "Capital initial"
- case "37": return "Stock de marchandises"
- case "401": return "Fournisseurs"
- case "411": return "Clients"
- case "44566": return "TVA déductible"
- case "44571": return "TVA collectée"
- case "511": return "Cartes à encaisser"
- case "512": return "Banque"
- case "517": return "Monnaie mobile"
- case "531": return "Caisse"
- case "6037": return "Coût des marchandises vendues"
- case "707": return "Ventes de marchandises"
- case "628", "6100": return "Charges d’exploitation"
- default: return fallback
- }
+	switch code {
+	case "101":
+		return "Capital initial"
+	case "37":
+		return "Stock de marchandises"
+	case "401":
+		return "Fournisseurs"
+	case "411":
+		return "Clients"
+	case "44566":
+		return "TVA déductible"
+	case "44571":
+		return "TVA collectée"
+	case "511":
+		return "Cartes à encaisser"
+	case "512":
+		return "Banque"
+	case "517":
+		return "Monnaie mobile"
+	case "531":
+		return "Caisse"
+	case "6037":
+		return "Coût des marchandises vendues"
+	case "707":
+		return "Ventes de marchandises"
+	case "628", "6100":
+		return "Charges d’exploitation"
+	default:
+		return fallback
+	}
 }
-func InvoiceKind(i documents.Invoice) string { if i.Direction=="SALE" {return "Vente"};if i.PurchaseCategory=="expense" {return "Dépense"};return "Achat de marchandises" }
-func Status(s string) string { switch s {case "POSTED":return "Comptabilisée";case "CONFIRMED":return "Confirmée";default:return "À vérifier"} }
-func InvoiceURL(id string) string { return "/app/invoices/"+id }
+func InvoiceKind(i documents.Invoice) string {
+	if i.Direction == "SALE" {
+		return "Vente"
+	}
+	if i.PurchaseCategory == "expense" {
+		return "Dépense"
+	}
+	return "Achat de marchandises"
+}
+func Status(s string) string {
+	switch s {
+	case "POSTED":
+		return "Comptabilisée"
+	case "CONFIRMED":
+		return "Confirmée"
+	default:
+		return "À vérifier"
+	}
+}
+func InvoiceURL(id string) string { return "/app/invoices/" + id }
 
 templ Landing() {
-<!DOCTYPE html>
-<html lang="fr"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>PanlyackERP · Votre activité, au clair.</title><meta name="description" content="De la facture au stock, à la comptabilité et à la trésorerie : découvrez PanlyackERP et créez votre espace de test."/><link rel="icon" type="image/png" href="/static/panlyack-logo.png"/><link rel="preload" href="/static/manrope.ttf" as="font" type="font/ttf" crossorigin="anonymous"/><link rel="stylesheet" href="/static/landing.css"/></head>
-<body class="landing"><a class="landing-skip" href="#main">Aller au contenu</a>
-<main id="main"><div class="landing-intro" id="top"><header class="landing-header landing-wrap"><a class="landing-brand" href="/" aria-label="PanlyackERP, accueil"><span class="landing-logo"><img src="/static/panlyack-logo.png" alt="" width="1254" height="1254"/></span><span>Panlyack<span class="landing-brand-suffix">ERP</span></span></a><nav class="landing-desktop-nav" aria-label="Navigation principale"><a href="#features">Fonctionnalités</a><a href="#workflow">Comment ça marche</a><a href="#questions">Questions</a></nav><div class="landing-header-actions"><a class="landing-login" href="/login">Se connecter</a><a class="landing-button landing-small" href="/register">S’inscrire @LandingArrow()</a></div><details class="landing-mobile-menu"><summary aria-label="Ouvrir ou fermer le menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>Menu</summary><nav aria-label="Navigation mobile"><a href="#features">Fonctionnalités</a><a href="#workflow">Comment ça marche</a><a href="#questions">Questions</a><a href="/login">Se connecter</a><a href="/register">S’inscrire</a></nav></details></header>
-<section class="landing-hero landing-wrap"><div class="landing-hero-copy"><h1>Moins de saisie.<br/>Plus de place<br/>pour <em>votre activité.</em></h1><p>Vos factures, votre stock et vos comptes avancent ensemble. Un seul espace pour garder le fil, du premier document au dernier paiement.</p><div class="landing-hero-actions"><a class="landing-button" href="/register">Créer mon espace de test @LandingArrow()</a><a class="landing-text-link" href="#workflow">Découvrir le parcours @LandingArrow()</a></div><div class="landing-reassurance">Un espace de démonstration dédié à votre entreprise.<br/>Vous vérifiez les données avant toute comptabilisation.</div></div>
-<figure class="landing-product" aria-label="Illustration du parcours d’une facture, avec données fictives"><div class="landing-product-top"><span class="landing-product-wordmark">PanlyackERP</span><span class="landing-preview-label">Aperçu illustratif</span></div><div class="landing-product-body"><div class="landing-preview-title"><span>Votre facture, au bon endroit.</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></div><div class="landing-invoice-preview"><div><span>Facture fournisseur</span><strong>FAC-DEMO-001</strong></div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 3h8l4 4v14H6zM14 3v5h4M9 12h6M9 16h6"/></svg><div class="landing-preview-row"><span>Marchandises</span><span>500,00 USD</span></div><div class="landing-preview-row"><span>Montant réglé</span><span>300,00 USD</span></div><div class="landing-preview-total"><span>Reste à payer</span><strong>200,00 USD</strong></div></div><div class="landing-preview-confirm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg><span>Données vérifiées par vous</span></div><div class="landing-preview-effects"><span>@LandingIcon("inventory") Stock</span><span>@LandingIcon("accounting") Comptabilité</span><span>@LandingIcon("cash") Trésorerie</span></div></div><figcaption>Un document. Des opérations reliées.</figcaption></figure></section>
-<div class="landing-module-strip landing-wrap"><span>Tout reste connecté</span><a href="#invoices">Factures @LandingArrow()</a><a href="#inventory">Stock @LandingArrow()</a><a href="#accounting">Comptabilité @LandingArrow()</a><a href="#cash">Trésorerie @LandingArrow()</a></div></div>
-<section id="features" class="landing-features landing-wrap"><div class="landing-section-heading"><h2>Une vue claire.<br/>Des opérations qui se suivent.</h2><p>Retrouvez le document d’origine et comprenez ses effets sur votre entreprise, sans jongler entre les outils.</p></div><div class="landing-feature-layout"><div class="landing-feature-photo"><img src="/static/dashboard-growth.jpg" alt="" loading="lazy" width="1600" height="1205"/><div><h3>Le document est le point de départ.</h3><p>La validation reste entre vos mains.</p></div></div><div class="landing-feature-list"><article id="invoices">@LandingIcon("invoices")<div><h3>Des factures dans les deux sens</h3><p>Créez une vente pour votre client. Importez une facture fournisseur ou photographiez une dépense depuis votre téléphone.</p></div></article><article id="inventory">@LandingIcon("inventory")<div><h3>Un stock qui suit les mouvements</h3><p>Consultez les quantités, les entrées et les sorties liées à vos achats et à vos ventes.</p></div></article><article id="accounting">@LandingIcon("accounting")<div><h3>Des comptes que vous pouvez retracer</h3><p>Parcourez le journal, la balance et le grand livre. Retrouvez la facture à l’origine de chaque opération.</p></div></article><article id="cash">@LandingIcon("cash")<div><h3>Les paiements gardent leur place</h3><p>Enregistrez un règlement partiel et suivez ce qu’il reste à payer ou à encaisser.</p></div></article></div></div></section>
-<section id="workflow" class="landing-workflow"><div class="landing-wrap"><div class="landing-section-heading"><h2>Du document aux comptes.<br/>Vous gardez le contrôle.</h2><p>Un parcours simple pour avancer avec des données que vous avez vérifiées.</p></div><ol class="landing-steps"><li><span class="landing-step-number">1</span><h3>Ajoutez votre document</h3><p>Importez une image ou un PDF, prenez une photo, ou créez directement une facture de vente.</p></li><li><span class="landing-step-number">2</span><h3>Vérifiez les informations</h3><p>Relisez les champs et les lignes proposés. Corrigez-les avant de confirmer la facture.</p></li><li><span class="landing-step-number">3</span><h3>Suivez ses effets</h3><p>Après comptabilisation, retrouvez les mouvements de stock, les écritures et les paiements associés.</p></li></ol><a class="landing-text-link" href="/register">Essayer le parcours dans mon espace @LandingArrow()</a></div></section>
-<section id="questions" class="landing-faq landing-wrap"><h2>Avant de commencer.</h2><div><details><summary>Que contient mon espace de test ?</summary><p>Votre inscription crée une organisation distincte avec des données de démonstration pour essayer les factures, le stock, la comptabilité et la trésorerie.</p></details><details><summary>Est-ce que l’IA comptabilise sans mon accord ?</summary><p>Non. L’extraction propose des informations à vérifier. Vous les corrigez et les confirmez avant de lancer la comptabilisation.</p></details><details><summary>Puis-je utiliser mon téléphone ?</summary><p>Oui. Vous pouvez parcourir l’application sur un petit écran et utiliser la caméra de votre téléphone pour ajouter un document.</p></details><details><summary>Est-ce une version de production ?</summary><p>Cette version est un MVP de démonstration locale. Elle permet de tester les parcours disponibles ; la préparation à un usage de production reste en cours.</p></details></div></section>
-<section class="landing-final landing-wrap"><div><h2>Votre prochaine facture<br/>peut commencer ici.</h2><p>Découvrez PanlyackERP avec votre propre espace de test.</p></div><a class="landing-button" href="/register">Créer mon espace @LandingArrow()</a></section></main>
-<footer class="landing-footer landing-wrap"><a class="landing-brand" href="#top"><span class="landing-logo"><img src="/static/panlyack-logo.png" alt="" width="1254" height="1254"/></span><span>PanlyackERP</span></a><p>Du document à une activité plus claire.</p><nav aria-label="Liens de pied de page"><a href="/login">Se connecter</a><a href="/register">S’inscrire</a><a href="#top">Retour en haut</a></nav></footer></body></html>
+	<!DOCTYPE html>
+	<html lang={ locale.Language(ctx) }>
+		<head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>{ T(ctx, "PanlyackERP · Votre activité, au clair.") }</title><meta name="description" content={ T(ctx, "De la facture au stock, à la comptabilité et à la trésorerie : découvrez PanlyackERP et créez votre espace de test.") }/><link rel="icon" type="image/png" href="/static/panlyack-logo.png"/><link rel="preload" href="/static/manrope.ttf" as="font" type="font/ttf" crossorigin="anonymous"/><link rel="stylesheet" href="/static/landing.css"/><link rel="stylesheet" href="/static/language.css"/></head>
+		<body class="landing">
+			<a class="landing-skip" href="#main">{ T(ctx, "Aller au contenu") }</a>
+			<main id="main">
+				<div class="landing-intro" id="top">
+					<header class="landing-header landing-wrap"><a class="landing-brand" href="/" aria-label={ T(ctx, "PanlyackERP, accueil") }><span class="landing-logo"><img src="/static/panlyack-logo.png" alt="" width="1254" height="1254"/></span><span>Panlyack<span class="landing-brand-suffix">ERP</span></span></a><nav class="landing-desktop-nav" aria-label={ T(ctx, "Navigation principale") }><a href="#features">{ T(ctx, "Fonctionnalités") }</a><a href="#workflow">{ T(ctx, "Comment ça marche") }</a><a href="#pricing">{ T(ctx, "Tarifs") }</a><a href="#questions">{ T(ctx, "Questions") }</a></nav><div class="landing-header-actions">@LanguageSwitcher()<a class="landing-login" href="/login">{ T(ctx, "Se connecter") }</a><a class="landing-button landing-small" href="/register">{ T(ctx, "S’inscrire") } @LandingArrow()</a></div><details class="landing-mobile-menu"><summary aria-label={ T(ctx, "Ouvrir ou fermer le menu") }><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"></path></svg>{ T(ctx, "Menu") }</summary><nav aria-label={ T(ctx, "Navigation mobile") }><a href="#features">{ T(ctx, "Fonctionnalités") }</a><a href="#workflow">{ T(ctx, "Comment ça marche") }</a><a href="#pricing">{ T(ctx, "Tarifs") }</a><a href="#questions">{ T(ctx, "Questions") }</a><a href="/login">{ T(ctx, "Se connecter") }</a><a href="/register">{ T(ctx, "S’inscrire") }</a></nav></details></header>
+					<section class="landing-hero landing-wrap">
+						<div class="landing-hero-copy"><h1>{ T(ctx, "Moins de saisie.") }<br/>{ T(ctx, "Plus de place") }<br/>{ T(ctx, "pour ") }<em>{ T(ctx, "votre activité.") }</em></h1><p>{ T(ctx, "Vos factures, votre stock et vos comptes avancent ensemble. Un seul espace pour garder le fil, du premier document au dernier paiement.") }</p><div class="landing-hero-actions"><a class="landing-button" href="/register">{ T(ctx, "Créer mon espace de test") } @LandingArrow()</a><a class="landing-text-link" href="#workflow">{ T(ctx, "Découvrir le parcours") } @LandingArrow()</a></div><div class="landing-reassurance">{ T(ctx, "Un espace de démonstration dédié à votre entreprise.") }<br/>{ T(ctx, "Vous vérifiez les données avant toute comptabilisation.") }</div></div>
+						<figure class="landing-product" aria-label={ T(ctx, "Illustration du parcours d’une facture, avec données fictives") }><div class="landing-product-top"><span class="landing-product-wordmark">PanlyackERP</span><span class="landing-preview-label">{ T(ctx, "Aperçu illustratif") }</span></div><div class="landing-product-body"><div class="landing-preview-title"><span>{ T(ctx, "Votre facture, au bon endroit.") }</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m5 12 4 4L19 6"></path></svg></div><div class="landing-invoice-preview"><div><span>{ T(ctx, "Facture fournisseur") }</span><strong>FAC-DEMO-001</strong></div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 3h8l4 4v14H6zM14 3v5h4M9 12h6M9 16h6"></path></svg><div class="landing-preview-row"><span>{ T(ctx, "Marchandises") }</span><span>{ T(ctx, "500,00 USD") }</span></div><div class="landing-preview-row"><span>{ T(ctx, "Montant réglé") }</span><span>{ T(ctx, "300,00 USD") }</span></div><div class="landing-preview-total"><span>{ T(ctx, "Reste à payer") }</span><strong>{ T(ctx, "200,00 USD") }</strong></div></div><div class="landing-preview-confirm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m5 12 4 4L19 6"></path></svg><span>{ T(ctx, "Données vérifiées par vous") }</span></div><div class="landing-preview-effects"><span>@LandingIcon("inventory")<span>{ T(ctx, "Stock") }</span></span><span>@LandingIcon("accounting")<span>{ T(ctx, "Comptabilité") }</span></span><span>@LandingIcon("cash")<span>{ T(ctx, "Trésorerie") }</span></span></div></div><figcaption>{ T(ctx, "Un document. Des opérations reliées.") }</figcaption></figure>
+					</section>
+					<div class="landing-module-strip landing-wrap"><span>{ T(ctx, "Tout reste connecté") }</span><a href="#invoices">{ T(ctx, "Factures") } @LandingArrow()</a><a href="#inventory">{ T(ctx, "Stock") } @LandingArrow()</a><a href="#accounting">{ T(ctx, "Comptabilité") } @LandingArrow()</a><a href="#cash">{ T(ctx, "Trésorerie") } @LandingArrow()</a></div>
+				</div>
+				<section id="features" class="landing-features landing-wrap"><div class="landing-section-heading"><h2>{ T(ctx, "Une vue claire.") }<br/>{ T(ctx, "Des opérations qui se suivent.") }</h2><p>{ T(ctx, "Retrouvez le document d’origine et comprenez ses effets sur votre entreprise, sans jongler entre les outils.") }</p></div><div class="landing-feature-layout"><div class="landing-feature-photo"><img src="/static/dashboard-growth.jpg" alt="" loading="lazy" width="1600" height="1205"/><div><h3>{ T(ctx, "Le document est le point de départ.") }</h3><p>{ T(ctx, "La validation reste entre vos mains.") }</p></div></div><div class="landing-feature-list"><article id="invoices">@LandingIcon("invoices")<div><h3>{ T(ctx, "Des factures dans les deux sens") }</h3><p>{ T(ctx, "Créez une vente pour votre client. Importez une facture fournisseur ou photographiez une dépense depuis votre téléphone.") }</p></div></article><article id="inventory">@LandingIcon("inventory")<div><h3>{ T(ctx, "Un stock qui suit les mouvements") }</h3><p>{ T(ctx, "Consultez les quantités, les entrées et les sorties liées à vos achats et à vos ventes.") }</p></div></article><article id="accounting">@LandingIcon("accounting")<div><h3>{ T(ctx, "Des comptes que vous pouvez retracer") }</h3><p>{ T(ctx, "Parcourez le journal, la balance et le grand livre. Retrouvez la facture à l’origine de chaque opération.") }</p></div></article><article id="cash">@LandingIcon("cash")<div><h3>{ T(ctx, "Les paiements gardent leur place") }</h3><p>{ T(ctx, "Enregistrez un règlement partiel et suivez ce qu’il reste à payer ou à encaisser.") }</p></div></article></div></div></section>
+				<section id="workflow" class="landing-workflow"><div class="landing-wrap"><div class="landing-section-heading"><h2>{ T(ctx, "Du document aux comptes.") }<br/>{ T(ctx, "Vous gardez le contrôle.") }</h2><p>{ T(ctx, "Un parcours simple pour avancer avec des données que vous avez vérifiées.") }</p></div><ol class="landing-steps"><li><span class="landing-step-number">1</span><h3>{ T(ctx, "Ajoutez votre document") }</h3><p>{ T(ctx, "Importez une image ou un PDF, prenez une photo, ou créez directement une facture de vente.") }</p></li><li><span class="landing-step-number">2</span><h3>{ T(ctx, "Vérifiez les informations") }</h3><p>{ T(ctx, "Relisez les champs et les lignes proposés. Corrigez-les avant de confirmer la facture.") }</p></li><li><span class="landing-step-number">3</span><h3>{ T(ctx, "Suivez ses effets") }</h3><p>{ T(ctx, "Après comptabilisation, retrouvez les mouvements de stock, les écritures et les paiements associés.") }</p></li></ol><a class="landing-text-link" href="/register">{ T(ctx, "Essayer le parcours dans mon espace") } @LandingArrow()</a></div></section>
+				@Pricing()
+				<section id="questions" class="landing-faq landing-wrap"><h2>{ T(ctx, "Avant de commencer.") }</h2><div><details><summary>{ T(ctx, "Que contient mon espace de test ?") }</summary><p>{ T(ctx, "Votre inscription crée une organisation distincte avec des données de démonstration pour essayer les factures, le stock, la comptabilité et la trésorerie.") }</p></details><details><summary>{ T(ctx, "Est-ce que l’IA comptabilise sans mon accord ?") }</summary><p>{ T(ctx, "Non. L’extraction propose des informations à vérifier. Vous les corrigez et les confirmez avant de lancer la comptabilisation.") }</p></details><details><summary>{ T(ctx, "Puis-je utiliser mon téléphone ?") }</summary><p>{ T(ctx, "Oui. Vous pouvez parcourir l’application sur un petit écran et utiliser la caméra de votre téléphone pour ajouter un document.") }</p></details><details><summary>{ T(ctx, "Est-ce une version de production ?") }</summary><p>{ T(ctx, "Cette version est un MVP de démonstration locale. Elle permet de tester les parcours disponibles ; la préparation à un usage de production reste en cours.") }</p></details></div></section>
+				<section class="landing-final landing-wrap"><div><h2>{ T(ctx, "Votre prochaine facture") }<br/>{ T(ctx, "peut commencer ici.") }</h2><p>{ T(ctx, "Découvrez PanlyackERP avec votre propre espace de test.") }</p></div><a class="landing-button" href="/register">{ T(ctx, "Créer mon espace") } @LandingArrow()</a></section>
+			</main>
+			<footer class="landing-footer landing-wrap"><a class="landing-brand" href="#top"><span class="landing-logo"><img src="/static/panlyack-logo.png" alt="" width="1254" height="1254"/></span><span>PanlyackERP</span></a><p>{ T(ctx, "Du document à une activité plus claire.") }</p><nav aria-label={ T(ctx, "Liens de pied de page") }><a href="/login">{ T(ctx, "Se connecter") }</a><a href="/register">{ T(ctx, "S’inscrire") }</a><a href="#top">{ T(ctx, "Retour en haut") }</a></nav></footer>
+		</body>
+	</html>
 }
 
 templ LandingArrow() {
-<svg class="landing-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
+	<svg class="landing-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"></path></svg>
 }
 
 templ LandingIcon(name string) {
-<svg class="landing-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href={ templ.SafeURL("/static/nav-icons.svg#"+name) }></use></svg>
+	<svg class="landing-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href={ templ.SafeURL("/static/nav-icons.svg#" + name) }></use></svg>
 }
 
-templ Login(csrf,message string) {
-<!DOCTYPE html>
-<html lang="fr"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Connexion · PanlyackERP</title><link rel="icon" type="image/png" href="/static/panlyack-logo.png"/><link rel="stylesheet" href="/static/app.css"/></head>
-<body class="auth-page"><main class="auth-shell"><section class="auth-form-side"><div class="auth-form-inner"><a class="auth-brand" href="/" aria-label="PanlyackERP, retour à l’accueil"><span class="brand-mark" aria-hidden="true"><img src="/static/panlyack-logo.png" alt="" width="1254" height="1254"/></span><span>Panlyack<span class="brand-light">ERP</span></span></a><h1>Retrouvez vos opérations.</h1><p class="muted">Connectez-vous à l’espace de travail de votre entreprise.</p>
-if message!="" {
-<div class="notice error" role="alert">{ message }</div>
-}
-<form method="post" action="/login"><input type="hidden" name="csrf" value={ csrf }/><label for="email">Adresse e-mail</label><input id="email" name="email" type="email" autocomplete="username" required maxlength="254"/><label for="password">Mot de passe</label><input id="password" name="password" type="password" autocomplete="current-password" required minlength="12" maxlength="128"/><button type="submit">Se connecter</button></form><p class="auth-help">Vous découvrez PanlyackERP ? <a href="/register">Créer un compte de test</a></p></div></section>
-<aside class="auth-story"><img class="auth-story-photo" src="/static/auth-handoff.webp" alt=""/><div class="auth-story-inner"><div class="auth-story-mark" aria-hidden="true"><img src="/static/panlyack-logo.png" alt="" width="1254" height="1254"/></div><h2>Du document aux comptes, sans perdre le fil.</h2><p>Importez une facture, vérifiez les données, puis consultez ses effets sur le stock, le journal et la trésorerie.</p><div class="auth-steps"><span>Importer</span><span>Vérifier</span><span>Comptabiliser</span></div><span class="auth-footnote">PanlyackERP · Espace de démonstration local</span></div></aside></main></body></html>
+templ Login(csrf, message string) {
+	<!DOCTYPE html>
+	<html lang={ locale.Language(ctx) }>
+		<head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>{ T(ctx, "Connexion · PanlyackERP") }</title><link rel="icon" type="image/png" href="/static/panlyack-logo.png"/><link rel="stylesheet" href="/static/app.css"/><link rel="stylesheet" href="/static/language.css"/></head>
+		<body class="auth-page">
+			<div class="language-corner">@LanguageSwitcher()</div>
+			<main class="auth-shell">
+				<section class="auth-form-side">
+					<div class="auth-form-inner">
+						<a class="auth-brand" href="/" aria-label={ T(ctx, "PanlyackERP, retour à l’accueil") }><span class="brand-mark" aria-hidden="true"><img src="/static/panlyack-logo.png" alt="" width="1254" height="1254"/></span><span>Panlyack<span class="brand-light">ERP</span></span></a>
+						<h1>{ T(ctx, "Retrouvez vos opérations.") }</h1>
+						<p class="muted">{ T(ctx, "Connectez-vous à l’espace de travail de votre entreprise.") }</p>
+						if message!="" {
+							<div class="notice error" role="alert">{ T(ctx, message) }</div>
+						}
+						<form method="post" action="/login"><input type="hidden" name="csrf" value={ csrf }/><label for="email">{ T(ctx, "Adresse e-mail") }</label><input id="email" name="email" type="email" autocomplete="username" required maxlength="254"/><label for="password">{ T(ctx, "Mot de passe") }</label><input id="password" name="password" type="password" autocomplete="current-password" required minlength="12" maxlength="128"/><button type="submit">{ T(ctx, "Se connecter") }</button></form>
+						<p class="auth-help">{ T(ctx, "Vous découvrez PanlyackERP ? ") }<a href="/register">{ T(ctx, "Créer un compte de test") }</a></p>
+					</div>
+				</section>
+				<aside class="auth-story"><img class="auth-story-photo" src="/static/auth-handoff.webp" alt=""/><div class="auth-story-inner"><div class="auth-story-mark" aria-hidden="true"><img src="/static/panlyack-logo.png" alt="" width="1254" height="1254"/></div><h2>{ T(ctx, "Du document aux comptes, sans perdre le fil.") }</h2><p>{ T(ctx, "Importez une facture, vérifiez les données, puis consultez ses effets sur le stock, le journal et la trésorerie.") }</p><div class="auth-steps"><span>{ T(ctx, "Importer") }</span><span>{ T(ctx, "Vérifier") }</span><span>{ T(ctx, "Comptabiliser") }</span></div><span class="auth-footnote">{ T(ctx, "PanlyackERP · Espace de démonstration local") }</span></div></aside>
+			</main>
+		</body>
+	</html>
 }
 
-templ Register(csrf,message string) {
-<!DOCTYPE html>
-<html lang="fr"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Créer un compte · PanlyackERP</title><link rel="icon" type="image/png" href="/static/panlyack-logo.png"/><link rel="stylesheet" href="/static/app.css"/></head>
-<body class="auth-page"><main class="auth-shell"><section class="auth-form-side"><div class="auth-form-inner"><a class="auth-brand" href="/" aria-label="PanlyackERP, retour à l’accueil"><span class="brand-mark" aria-hidden="true"><img src="/static/panlyack-logo.png" alt="" width="1254" height="1254"/></span><span>Panlyack<span class="brand-light">ERP</span></span></a><h1>Créez votre espace de test.</h1><p class="muted">Votre entreprise dispose de ses propres factures, stocks, comptes et soldes de démonstration.</p>
-if message!="" {
-<div class="notice error" role="alert">{ message }</div>
-}
-<form method="post" action="/register"><input type="hidden" name="csrf" value={ csrf }/><label for="accounting_standard">Référentiel comptable de l’entreprise</label><select id="accounting_standard" name="accounting_standard"><option value="US_GAAP" selected>Américain · US GAAP (plan de démonstration)</option><option value="FR_PCG">Français · PCG</option></select><p class="auth-field-help">Choisi à la création, sans conversion des anciens comptes.</p><label for="organization_name">Nom de votre entreprise</label><input id="organization_name" name="organization_name" autocomplete="organization" required minlength="2" maxlength="80"/><label for="email">Adresse e-mail</label><input id="email" name="email" type="email" autocomplete="email" required maxlength="254"/><label for="password">Mot de passe</label><input id="password" name="password" type="password" autocomplete="new-password" required minlength="12" maxlength="128"/><p class="auth-field-help">12 caractères minimum.</p><label for="password_confirm">Confirmer le mot de passe</label><input id="password_confirm" name="password_confirm" type="password" autocomplete="new-password" required minlength="12" maxlength="128"/><button type="submit">Créer mon espace</button></form><p class="auth-help">Vous avez déjà un compte ? <a href="/login">Se connecter</a></p></div></section>
-<aside class="auth-story"><img class="auth-story-photo" src="/static/auth-handoff.webp" alt=""/><div class="auth-story-inner"><div class="auth-story-mark" aria-hidden="true"><img src="/static/panlyack-logo.png" alt="" width="1254" height="1254"/></div><h2>Essayez le parcours complet.</h2><p>Importez une facture, confirmez ses données, puis voyez les effets sur le stock, la comptabilité et la trésorerie.</p><div class="auth-steps"><span>Importer</span><span>Vérifier</span><span>Comptabiliser</span></div><span class="auth-footnote">PanlyackERP · Espace de démonstration local</span></div></aside></main></body></html>
+templ Register(csrf, message string) {
+	<!DOCTYPE html>
+	<html lang={ locale.Language(ctx) }>
+		<head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>{ T(ctx, "Créer un compte · PanlyackERP") }</title><link rel="icon" type="image/png" href="/static/panlyack-logo.png"/><link rel="stylesheet" href="/static/app.css"/><link rel="stylesheet" href="/static/language.css"/></head>
+		<body class="auth-page">
+			<div class="language-corner">@LanguageSwitcher()</div>
+			<main class="auth-shell">
+				<section class="auth-form-side">
+					<div class="auth-form-inner">
+						<a class="auth-brand" href="/" aria-label={ T(ctx, "PanlyackERP, retour à l’accueil") }><span class="brand-mark" aria-hidden="true"><img src="/static/panlyack-logo.png" alt="" width="1254" height="1254"/></span><span>Panlyack<span class="brand-light">ERP</span></span></a>
+						<h1>{ T(ctx, "Créez votre espace de test.") }</h1>
+						<p class="muted">{ T(ctx, "Votre entreprise dispose de ses propres factures, stocks, comptes et soldes de démonstration.") }</p>
+						if message!="" {
+							<div class="notice error" role="alert">{ T(ctx, message) }</div>
+						}
+						<form method="post" action="/register"><input type="hidden" name="csrf" value={ csrf }/><label for="accounting_standard">{ T(ctx, "Référentiel comptable de l’entreprise") }</label><select id="accounting_standard" name="accounting_standard"><option value="US_GAAP" selected>{ T(ctx, "Américain · US GAAP (plan de démonstration)") }</option><option value="FR_PCG">{ T(ctx, "Français · PCG") }</option></select><p class="auth-field-help">{ T(ctx, "Choisi à la création, sans conversion des anciens comptes.") }</p><label for="organization_name">{ T(ctx, "Nom de votre entreprise") }</label><input id="organization_name" name="organization_name" autocomplete="organization" required minlength="2" maxlength="80"/><label for="email">{ T(ctx, "Adresse e-mail") }</label><input id="email" name="email" type="email" autocomplete="email" required maxlength="254"/><label for="password">{ T(ctx, "Mot de passe") }</label><input id="password" name="password" type="password" autocomplete="new-password" required minlength="12" maxlength="128"/><p class="auth-field-help">{ T(ctx, "12 caractères minimum.") }</p><label for="password_confirm">{ T(ctx, "Confirmer le mot de passe") }</label><input id="password_confirm" name="password_confirm" type="password" autocomplete="new-password" required minlength="12" maxlength="128"/><button type="submit">{ T(ctx, "Créer mon espace") }</button></form>
+						<p class="auth-help">{ T(ctx, "Vous avez déjà un compte ? ") }<a href="/login">{ T(ctx, "Se connecter") }</a></p>
+					</div>
+				</section>
+				<aside class="auth-story"><img class="auth-story-photo" src="/static/auth-handoff.webp" alt=""/><div class="auth-story-inner"><div class="auth-story-mark" aria-hidden="true"><img src="/static/panlyack-logo.png" alt="" width="1254" height="1254"/></div><h2>{ T(ctx, "Essayez le parcours complet.") }</h2><p>{ T(ctx, "Importez une facture, confirmez ses données, puis voyez les effets sur le stock, la comptabilité et la trésorerie.") }</p><div class="auth-steps"><span>{ T(ctx, "Importer") }</span><span>{ T(ctx, "Vérifier") }</span><span>{ T(ctx, "Comptabiliser") }</span></div><span class="auth-footnote">{ T(ctx, "PanlyackERP · Espace de démonstration local") }</span></div></aside>
+			</main>
+		</body>
+	</html>
 }
 
 templ Logout(csrf string) {
-<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Déconnexion · PanlyackERP</title><link rel="icon" type="image/png" href="/static/panlyack-logo.png"/><link rel="stylesheet" href="/static/app.css"/></head><body class="auth-page"><main class="logout-card"><h1>Quitter l’espace de travail ?</h1><p class="muted">Votre session sera fermée sur ce navigateur.</p><form method="post" action="/logout"><input type="hidden" name="csrf" value={ csrf }/><button type="submit">Se déconnecter</button><a class="secondary button" href="/app/dashboard">Retour au tableau de bord</a></form></main></body></html>
+	<!DOCTYPE html>
+	<html lang={ locale.Language(ctx) }><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>{ T(ctx, "Déconnexion · PanlyackERP") }</title><link rel="icon" type="image/png" href="/static/panlyack-logo.png"/><link rel="stylesheet" href="/static/app.css"/><link rel="stylesheet" href="/static/language.css"/></head><body class="auth-page"><div class="language-corner">@LanguageSwitcher()</div><main class="logout-card"><h1>{ T(ctx, "Quitter l’espace de travail ?") }</h1><p class="muted">{ T(ctx, "Votre session sera fermée sur ce navigateur.") }</p><form method="post" action="/logout"><input type="hidden" name="csrf" value={ csrf }/><button type="submit">{ T(ctx, "Se déconnecter") }</button><a class="secondary button" href="/app/dashboard">{ T(ctx, "Retour au tableau de bord") }</a></form></main></body></html>
 }
 
-templ Layout(title,active,orgName string) {
- <!DOCTYPE html>
- <html lang="fr"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>{ title } · PanlyackERP</title><link rel="icon" type="image/png" href="/static/panlyack-logo.png"/><link rel="stylesheet" href="/static/app.css"/><script src="/static/htmx.min.js" defer></script><script src="/static/sidebar.js" defer></script><meta name="htmx-config" content="{&quot;allowEval&quot;:false,&quot;allowScriptTags&quot;:false,&quot;includeIndicatorStyles&quot;:false}"/></head>
- <body><a class="skip" href="#main">Aller au contenu</a><div class="shell"><input class="nav-toggle" id="nav-toggle" type="checkbox" aria-label="Afficher le menu de navigation"/><label class="nav-scrim" for="nav-toggle" aria-hidden="true"></label>
- <aside class="sidebar" aria-label="Espace de travail"><div class="sidebar-top"><a class="brand" href="/app/dashboard" aria-label="PanlyackERP, tableau de bord"><span class="brand-mark" aria-hidden="true"><img src="/static/panlyack-logo.png" alt="" width="1254" height="1254"/></span><span class="sidebar-brand-text">Panlyack<span class="brand-light">ERP</span></span></a>
- <button class="sidebar-collapse" id="sidebar-collapse" type="button" aria-controls="sidebar-navigation" aria-expanded="true" aria-label="Réduire le menu" title="Réduire le menu" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16m7-11-3 3 3 3"/></svg></button>
- <label class="menu-trigger" for="nav-toggle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg><span>Menu</span></label></div>
- <nav id="sidebar-navigation" aria-label="Navigation principale"><div class="drawer-heading"><span>Navigation</span><label class="nav-close" for="nav-toggle" aria-label="Fermer le menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M5 5l14 14M19 5 5 19"/></svg></label></div><p class="nav-label">Votre espace</p>
- for _,item:=range []struct{Path,Label string}{{"dashboard","Vue d’ensemble"},{"invoices","Factures"},{"inventory","Stock"},{"accounting","Comptabilité"},{"cash","Trésorerie"}} {
-  <a href={ templ.SafeURL("/app/"+item.Path) } aria-label={ item.Label } title={ item.Label } aria-current={ activePage(active,item.Path) }><span class="sidebar-icon"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href={ templ.SafeURL("/static/nav-icons.svg#"+item.Path) }></use></svg></span><span class="sidebar-item-label">{ item.Label }</span><span class="sidebar-tooltip" aria-hidden="true">{ item.Label }</span></a>
- }
- </nav><div class="sidebar-footer"><a class="sidebar-create" href="/app/invoices/new" aria-label="Importer une facture" title="Importer une facture"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span class="sidebar-item-label">Importer une facture</span><span class="sidebar-tooltip" aria-hidden="true">Importer une facture</span></a>
- <div class="workspace" title={ orgName }><span class="workspace-avatar brand-mark" aria-hidden="true"><img src="/static/panlyack-logo.png" alt="" width="1254" height="1254"/></span><span class="workspace-copy"><span class="workspace-name">{ orgName }</span><span>Espace de démonstration</span></span></div>
- <a class="sidebar-home" href="/" aria-label="Retour au site Panlyack" title="Retour au site Panlyack"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 11 9-8 9 8M5 10v11h14V10M9 21v-7h6v7"/></svg><span class="sidebar-item-label">Site Panlyack</span><span class="sidebar-tooltip" aria-hidden="true">Site Panlyack</span></a></div></aside>
- <div class="main-column"><header class="topbar"><span class="organization-name">{ title }</span><span class="topbar-right"><span class="org-meta">{ orgName } <span aria-hidden="true">·</span> USD</span><a class="logout-link" href="/logout">Déconnexion</a></span></header><main id="main" class="content">{ children... }</main></div>
- </div></body></html>
+templ Layout(title, active, orgName string) {
+	<!DOCTYPE html>
+	<html lang={ locale.Language(ctx) }>
+		<head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>{ T(ctx, title) } { T(ctx, "· PanlyackERP") }</title><link rel="icon" type="image/png" href="/static/panlyack-logo.png"/><link rel="stylesheet" href="/static/app.css"/><link rel="stylesheet" href="/static/language.css"/><script src="/static/htmx.min.js" defer></script>
+<script src="/static/sidebar.js" defer></script>
+<meta name="htmx-config" content="{&quot;allowEval&quot;:false,&quot;allowScriptTags&quot;:false,&quot;includeIndicatorStyles&quot;:false}"/></head>
+		<body>
+			<a class="skip" href="#main">{ T(ctx, "Aller au contenu") }</a>
+			<div class="shell">
+				<input class="nav-toggle" id="nav-toggle" type="checkbox" aria-label={ T(ctx, "Afficher le menu de navigation") }/><label class="nav-scrim" for="nav-toggle" aria-hidden="true"></label>
+				<aside class="sidebar" aria-label={ T(ctx, "Espace de travail") }>
+					<div class="sidebar-top">
+						<a class="brand" href="/app/dashboard" aria-label={ T(ctx, "PanlyackERP, tableau de bord") }><span class="brand-mark" aria-hidden="true"><img src="/static/panlyack-logo.png" alt="" width="1254" height="1254"/></span><span class="sidebar-brand-text">Panlyack<span class="brand-light">ERP</span></span></a>
+						<button class="sidebar-collapse" id="sidebar-collapse" type="button" aria-controls="sidebar-navigation" aria-expanded="true" aria-label={ T(ctx, "Réduire le menu") } title={ T(ctx, "Réduire le menu") } data-translate-expand={ T(ctx, "Développer le menu") } data-translate-collapse={ T(ctx, "Réduire le menu") } hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"></rect><path d="M9 4v16m7-11-3 3 3 3"></path></svg></button>
+						<label class="menu-trigger" for="nav-toggle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"></path></svg><span>{ T(ctx, "Menu") }</span></label>
+					</div>
+					<nav id="sidebar-navigation" aria-label={ T(ctx, "Navigation principale") }>
+						<div class="drawer-heading"><span>{ T(ctx, "Navigation") }</span><label class="nav-close" for="nav-toggle" aria-label={ T(ctx, "Fermer le menu") }><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M5 5l14 14M19 5 5 19"></path></svg></label></div>
+						<p class="nav-label">{ T(ctx, "Votre espace") }</p>
+						for _,item:=range []struct{Path,Label string}{{"dashboard","Vue d’ensemble"},{"invoices","Factures"},{"inventory","Stock"},{"accounting","Comptabilité"},{"cash","Trésorerie"}} {
+							<a href={ templ.SafeURL("/app/" + item.Path) } aria-label={ T(ctx, item.Label) } title={ T(ctx, item.Label) } aria-current={ activePage(active, item.Path) }><span class="sidebar-icon"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href={ templ.SafeURL("/static/nav-icons.svg#" + item.Path) }></use></svg></span><span class="sidebar-item-label">{ T(ctx, item.Label) }</span><span class="sidebar-tooltip" aria-hidden="true">{ T(ctx, item.Label) }</span></a>
+						}
+					</nav>
+					<div class="sidebar-footer">
+						<a class="sidebar-create" href="/app/invoices/new" aria-label={ T(ctx, "Importer une facture") } title={ T(ctx, "Importer une facture") }><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg><span class="sidebar-item-label">{ T(ctx, "Importer une facture") }</span><span class="sidebar-tooltip" aria-hidden="true">{ T(ctx, "Importer une facture") }</span></a>
+						<div class="workspace" title={ orgName }><span class="workspace-avatar brand-mark" aria-hidden="true"><img src="/static/panlyack-logo.png" alt="" width="1254" height="1254"/></span><span class="workspace-copy"><span class="workspace-name">{ orgName }</span><span>{ T(ctx, "Espace de démonstration") }</span></span></div>
+						<a class="sidebar-home" href="/" aria-label={ T(ctx, "Retour au site Panlyack") } title={ T(ctx, "Retour au site Panlyack") }><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 11 9-8 9 8M5 10v11h14V10M9 21v-7h6v7"></path></svg><span class="sidebar-item-label">{ T(ctx, "Site Panlyack") }</span><span class="sidebar-tooltip" aria-hidden="true">{ T(ctx, "Site Panlyack") }</span></a>
+					</div>
+				</aside>
+				<div class="main-column"><header class="topbar"><span class="organization-name">{ T(ctx, title) }</span><span class="topbar-right">@LanguageSwitcher()<span class="org-meta">{ orgName } <span aria-hidden="true">·</span> USD</span><a class="logout-link" href="/logout">{ T(ctx, "Déconnexion") }</a></span></header><main id="main" class="content">{ children... }
+</main></div>
+			</div>
+		</body>
+	</html>
 }
 
 templ AccountingSuggestion(message string, rows []SuggestedAccount, references []AccountingReference) {
-<section class="section-heading"><p>{ message }</p>
-if len(rows)>0 {
-<div class="table-scroll"><table><thead><tr><th>Sens</th><th>Compte</th><th>Libellé</th><th class="amount">Montant USD</th></tr></thead><tbody>
-for _,row:=range rows {
-<tr><td>{ row.Side }</td><td>{ row.Code }</td><td>{ row.Name }</td><td class="amount">{ row.Amount }</td></tr>
-}
-</tbody></table></div>
-}
-if len(references)>0 {
-<p class="muted">Références consultées (contexte, sans autorisation de comptabilisation) :</p><ul>
-for _,ref:=range references {
-<li>
-if strings.HasPrefix(ref.Source,"https://") {
-<a href={ templ.URL(ref.Source) } target="_blank" rel="noopener noreferrer">{ ref.ID }</a>
-} else {
-<span>{ ref.ID } · { ref.Source }</span>
-}
-</li>
-}
-</ul>
-}
-</section>
+	<section class="section-heading">
+		<p>{ T(ctx, message) }</p>
+		if len(rows)>0 {
+			<div class="table-scroll">
+				<table>
+					<thead><tr><th>{ T(ctx, "Sens") }</th><th>{ T(ctx, "Compte") }</th><th>{ T(ctx, "Libellé") }</th><th class="amount">{ T(ctx, "Montant USD") }</th></tr></thead>
+					<tbody>
+						for _,row:=range rows {
+							<tr><td>{ T(ctx, row.Side) }</td><td>{ row.Code }</td><td>{ row.Name }</td><td class="amount">{ row.Amount }</td></tr>
+						}
+					</tbody>
+				</table>
+			</div>
+		}
+		if len(references)>0 {
+			<p class="muted">{ T(ctx, "Références consultées (contexte, sans autorisation de comptabilisation) :") }</p>
+			<ul>
+				for _,ref:=range references {
+					<li>
+						if strings.HasPrefix(ref.Source,"https://") {
+							<a href={ templ.URL(ref.Source) } target="_blank" rel="noopener noreferrer">{ ref.ID }</a>
+						} else {
+							<span>{ ref.ID } · { ref.Source }</span>
+						}
+					</li>
+				}
+			</ul>
+		}
+	</section>
 }
 
-templ Heading(title,description string) {
-<div class="page-heading"><div><h1>{ title }</h1><p class="muted">{ description }</p></div>{ children... }</div>
+templ Heading(title, description string) {
+	<div class="page-heading"><div><h1>{ title }</h1><p class="muted">{ T(ctx, description) }</p></div>{ children... }
+</div>
 }
 
 templ KPI(s reporting.Summary) {
- <div class="dashboard-snapshot" id="kpis" hx-get="/app/_partials/dashboard/kpis" hx-trigger="every 30s" hx-swap="outerHTML">
- <section class="finance-card balance-card" aria-labelledby="cash-heading">
- <div class="finance-card-top"><span class="currency-chip">USD <span>Devise de l’espace</span></span><a class="circle-link" href="/app/cash" aria-label="Consulter la trésorerie">@LandingArrow()</a></div>
- <h2 id="cash-heading">Trésorerie disponible</h2><p class="balance-value">{ Money(s.Cash) } <small>USD</small></p><p class="finance-note">Solde issu des opérations comptabilisées</p>
- <div class="balance-actions"><a class="button" href="/app/invoices/sales/new">Créer une vente @LandingArrow()</a><a class="button secondary" href="/app/cash">Voir les paiements</a></div>
- </section>
- <section class="finance-card revenue-card" aria-labelledby="revenue-heading">
- <div class="finance-card-top"><a class="revenue-link" href="/app/accounting">Journal comptable @LandingArrow()</a><svg class="revenue-symbol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M4 17 10 11 14 15 21 5M15 5h6v6"/></svg></div>
- <h2 id="revenue-heading">Chiffre d’affaires</h2><p class="revenue-value">{ Money(s.Revenue) } <small>USD</small></p>
- <dl class="revenue-details"><div><dt>Valeur du stock</dt><dd>{ Money(s.Inventory) } <small>USD</small></dd></div><div><dt>Factures comptabilisées</dt><dd>{ strconv.Itoa(s.Count) }</dd></div></dl>
- </section>
- <section class="finance-card spending-card" aria-labelledby="spending-heading">
- <div class="finance-card-top"><h2 id="spending-heading">@LandingIcon("inventory") Achats et dépenses</h2><a href="/app/accounting" class="circle-link" aria-label="Voir les achats au journal">@LandingArrow()</a></div>
- <div class="spending-chart"><svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="50" fill="none" stroke="currentColor" stroke-width="7" class="spending-track"/>
- if spending(s.Purchases,s.Expenses).Chart {
- <circle cx="60" cy="60" r="50" pathLength="100" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-dasharray={ spending(s.Purchases,s.Expenses).Share+" 100" } transform="rotate(-90 60 60)" class="spending-arc"/>
- }
- </svg><div><strong>{ spending(s.Purchases,s.Expenses).Total }</strong><span>USD au total</span></div></div>
- <dl class="spending-legend"><div><dt><span class="legend-dot goods"></span>Marchandises</dt><dd>{ Money(s.Purchases) } USD</dd></div><div><dt><span class="legend-dot charges"></span>Dépenses</dt><dd>{ Money(s.Expenses) } USD</dd></div></dl>
- if !spending(s.Purchases,s.Expenses).Chart {
- <p class="finance-note">Répartition affichée pour des montants positifs.</p>
- }
- </section>
- <section class="finance-card dues-card" aria-labelledby="dues-heading"><div class="finance-card-top"><h2 id="dues-heading">@LandingIcon("cash") Règlements à suivre</h2><a class="circle-link" href="/app/invoices" aria-label="Consulter les factures à régler">@LandingArrow()</a></div>
- <dl class="dues-list"><div><dt>À encaisser des clients</dt><dd>{ Money(s.Receivables) } <small>USD</small></dd></div><div><dt>À payer aux fournisseurs</dt><dd>{ Money(s.Payables) } <small>USD</small></dd></div><div class="cost-line"><dt>Coût des ventes</dt><dd>{ Money(s.Cost) } <small>USD</small></dd></div></dl><p class="finance-note">Ouvrez une facture pour enregistrer un règlement partiel.</p></section>
- </div>
+	<div class="dashboard-snapshot" id="kpis" hx-get="/app/_partials/dashboard/kpis" hx-trigger="every 30s" hx-swap="outerHTML">
+		<section class="finance-card balance-card" aria-labelledby="cash-heading">
+			<div class="finance-card-top"><span class="currency-chip">{ T(ctx, "USD ") }<span>{ T(ctx, "Devise de l’espace") }</span></span><a class="circle-link" href="/app/cash" aria-label={ T(ctx, "Consulter la trésorerie") }>@LandingArrow()</a></div>
+			<h2 id="cash-heading">{ T(ctx, "Trésorerie disponible") }</h2>
+			<p class="balance-value">{ Money(s.Cash) } <small>USD</small></p>
+			<p class="finance-note">{ T(ctx, "Solde issu des opérations comptabilisées") }</p>
+			<div class="balance-actions"><a class="button" href="/app/invoices/sales/new">{ T(ctx, "Créer une vente") } @LandingArrow()</a><a class="button secondary" href="/app/cash">{ T(ctx, "Voir les paiements") }</a></div>
+		</section>
+		<section class="finance-card revenue-card" aria-labelledby="revenue-heading">
+			<div class="finance-card-top"><a class="revenue-link" href="/app/accounting">{ T(ctx, "Journal comptable") } @LandingArrow()</a><svg class="revenue-symbol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M4 17 10 11 14 15 21 5M15 5h6v6"></path></svg></div>
+			<h2 id="revenue-heading">{ T(ctx, "Chiffre d’affaires") }</h2>
+			<p class="revenue-value">{ Money(s.Revenue) } <small>USD</small></p>
+			<dl class="revenue-details"><div><dt>{ T(ctx, "Valeur du stock") }</dt><dd>{ Money(s.Inventory) } <small>USD</small></dd></div><div><dt>{ T(ctx, "Factures comptabilisées") }</dt><dd>{ strconv.Itoa(s.Count) }</dd></div></dl>
+		</section>
+		<section class="finance-card spending-card" aria-labelledby="spending-heading">
+			<div class="finance-card-top"><h2 id="spending-heading">@LandingIcon("inventory")<span>{ T(ctx, "Achats et dépenses") }</span></h2><a href="/app/accounting" class="circle-link" aria-label={ T(ctx, "Voir les achats au journal") }>@LandingArrow()</a></div>
+			<div class="spending-chart">
+				<svg viewBox="0 0 120 120" aria-hidden="true">
+					<circle cx="60" cy="60" r="50" fill="none" stroke="currentColor" stroke-width="7" class="spending-track"></circle>
+					if spending(s.Purchases,s.Expenses).Chart {
+						<circle cx="60" cy="60" r="50" pathLength="100" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-dasharray={ spending(s.Purchases, s.Expenses).Share + " 100" } transform="rotate(-90 60 60)" class="spending-arc"></circle>
+					}
+				</svg>
+				<div><strong>{ spending(s.Purchases,s.Expenses).Total }</strong><span>{ T(ctx, "USD au total") }</span></div>
+			</div>
+			<dl class="spending-legend"><div><dt><span class="legend-dot goods"></span>{ T(ctx, "Marchandises") }</dt><dd>{ Money(s.Purchases) } USD</dd></div><div><dt><span class="legend-dot charges"></span>{ T(ctx, "Dépenses") }</dt><dd>{ Money(s.Expenses) } USD</dd></div></dl>
+			if !spending(s.Purchases,s.Expenses).Chart {
+				<p class="finance-note">{ T(ctx, "Répartition affichée pour des montants positifs.") }</p>
+			}
+		</section>
+		<section class="finance-card dues-card" aria-labelledby="dues-heading">
+			<div class="finance-card-top"><h2 id="dues-heading">@LandingIcon("cash")<span>{ T(ctx, "Règlements à suivre") }</span></h2><a class="circle-link" href="/app/invoices" aria-label={ T(ctx, "Consulter les factures à régler") }>@LandingArrow()</a></div>
+			<dl class="dues-list"><div><dt>{ T(ctx, "À encaisser des clients") }</dt><dd>{ Money(s.Receivables) } <small>USD</small></dd></div><div><dt>{ T(ctx, "À payer aux fournisseurs") }</dt><dd>{ Money(s.Payables) } <small>USD</small></dd></div><div class="cost-line"><dt>{ T(ctx, "Coût des ventes") }</dt><dd>{ Money(s.Cost) } <small>USD</small></dd></div></dl>
+			<p class="finance-note">{ T(ctx, "Ouvrez une facture pour enregistrer un règlement partiel.") }</p>
+		</section>
+	</div>
 }
 
-templ Dashboard(s reporting.Summary,invoices []documents.Invoice,orgName string) {
- @Layout("Vue d’ensemble","dashboard",orgName) {
- <div class="dashboard-heading"><div><h1>Votre activité, au clair.</h1><p>Bienvenue dans l’espace { orgName }.</p></div><a class="button dashboard-primary" href="/app/invoices/new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Importer une facture</a></div>
- <nav class="dashboard-tabs" aria-label="Accès rapides"><a href="/app/dashboard" aria-current="page">Vue d’ensemble</a><a href="/app/invoices">Factures</a><a href="/app/inventory">Stock</a><a href="/app/accounting">Comptabilité</a><a href="/app/cash">Trésorerie</a></nav>
- <div class="dashboard-grid">@KPI(s)
- <section class="finance-card recent-card" aria-labelledby="recent-heading"><div class="finance-card-top"><h2 id="recent-heading">@LandingIcon("invoices") Factures récentes</h2><a href="/app/invoices" class="circle-link" aria-label="Voir toutes les factures">@LandingArrow()</a></div>
- if len(invoices)==0 {
- <div class="recent-empty"><h3>Votre première facture commence ici.</h3><p>Importez un document, puis vérifiez ses données.</p><a href="/app/invoices/new">Importer une facture</a></div>
- } else {
- <ul class="recent-invoice-list">
- for index,i:=range invoices {
- if index<4 {
- <li><a href={ templ.SafeURL(InvoiceURL(i.ID)) }><span class="recent-invoice-icon">@LandingIcon("invoices")</span><span class="recent-invoice-copy"><strong>{ i.Partner }</strong><span>{ i.Number } · { i.IssueDate }</span><span class={ statusClass(i.Status) }>{ Status(i.Status) }</span></span><span class="recent-invoice-amount">{ Money(i.Total) }<small>{ i.Currency }</small></span></a></li>
- }
- }
- </ul><a class="recent-all" href="/app/invoices">Toutes les factures @LandingArrow()</a>
- }
- </section></div><p class="dashboard-data-note">Les soldes proviennent des opérations comptabilisées de votre entreprise. Actualisation des soldes toutes les 30 secondes.</p>
- }
+templ Dashboard(s reporting.Summary, invoices []documents.Invoice, orgName string) {
+	@Layout("Vue d’ensemble", "dashboard", orgName) {
+		<div class="dashboard-heading"><div><h1>{ T(ctx, "Votre activité, au clair.") }</h1><p>{ T(ctx, "Bienvenue dans l’espace ") }{ orgName }.</p></div><a class="button dashboard-primary" href="/app/invoices/new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>{ T(ctx, "Importer une facture") }</a></div>
+		<nav class="dashboard-tabs" aria-label={ T(ctx, "Accès rapides") }><a href="/app/dashboard" aria-current="page">{ T(ctx, "Vue d’ensemble") }</a><a href="/app/invoices">{ T(ctx, "Factures") }</a><a href="/app/inventory">{ T(ctx, "Stock") }</a><a href="/app/accounting">{ T(ctx, "Comptabilité") }</a><a href="/app/cash">{ T(ctx, "Trésorerie") }</a></nav>
+		<div class="dashboard-grid">
+			@KPI(s)
+			<section class="finance-card recent-card" aria-labelledby="recent-heading">
+				<div class="finance-card-top"><h2 id="recent-heading">@LandingIcon("invoices")<span>{ T(ctx, "Factures récentes") }</span></h2><a href="/app/invoices" class="circle-link" aria-label={ T(ctx, "Voir toutes les factures") }>@LandingArrow()</a></div>
+				if len(invoices)==0 {
+					<div class="recent-empty"><h3>{ T(ctx, "Votre première facture commence ici.") }</h3><p>{ T(ctx, "Importez un document, puis vérifiez ses données.") }</p><a href="/app/invoices/new">{ T(ctx, "Importer une facture") }</a></div>
+				} else {
+					<ul class="recent-invoice-list">
+						for index,i:=range invoices {
+							if index<4 {
+								<li><a href={ templ.SafeURL(InvoiceURL(i.ID)) }><span class="recent-invoice-icon">@LandingIcon("invoices")</span><span class="recent-invoice-copy"><strong>{ i.Partner }</strong><span>{ i.Number } · { i.IssueDate }</span><span class={ statusClass(i.Status) }>{ T(ctx, Status(i.Status)) }</span></span><span class="recent-invoice-amount">{ Money(i.Total) }<small>{ i.Currency }</small></span></a></li>
+							}
+						}
+					</ul><a class="recent-all" href="/app/invoices">{ T(ctx, "Toutes les factures") } @LandingArrow()</a>
+				}
+			</section>
+		</div>
+		<p class="dashboard-data-note">{ T(ctx, "Les soldes proviennent des opérations comptabilisées de votre entreprise. Actualisation des soldes toutes les 30 secondes.") }</p>
+	}
 }
 
 templ InvoiceTable(invoices []documents.Invoice) {
- <div class="panel">
- if len(invoices)==0 {
-<div class="empty"><h2>Votre première facture commence ici</h2><p class="muted">Importez un document, vérifiez les lignes et validez ses effets sur votre activité.</p><a href="/app/invoices/new">Importer un document</a></div>
-} else {
-
- <div class="table-scroll"><table><caption>Factures récentes</caption><thead><tr><th>Référence</th><th>Partenaire</th><th>Type</th><th>Date</th><th>Statut</th><th class="amount">Montant</th></tr></thead><tbody>
- for _,i:=range invoices {
-<tr><td><a href={ templ.SafeURL(InvoiceURL(i.ID)) }>{ i.Number }</a></td><td>{ i.Partner }</td><td>{ InvoiceKind(i) }</td><td>{ i.IssueDate }</td><td><span class={ statusClass(i.Status) }>{ Status(i.Status) }</span></td><td class="amount">{ Money(i.Total) } { i.Currency }</td></tr>
-}
- </tbody></table></div>
- }
- </div>
-}
-
-templ Invoices(invoices []documents.Invoice,orgName string) {
-@Layout("Factures","invoices",orgName) {
-@Heading("Factures","Créez vos ventes ou importez vos justificatifs externes.") {
-<div class="actions"><a class="button secondary" href="/app/invoices/sales/new">Créer une vente</a>
-<a class="button" href="/app/invoices/new">Importer un justificatif</a></div>
-} @InvoiceTable(invoices)
-}
+	<div class="panel">
+		if len(invoices)==0 {
+			<div class="empty"><h2>{ T(ctx, "Votre première facture commence ici") }</h2><p class="muted">{ T(ctx, "Importez un document, vérifiez les lignes et validez ses effets sur votre activité.") }</p><a href="/app/invoices/new">{ T(ctx, "Importer un document") }</a></div>
+		} else {
+			<div class="table-scroll">
+				<table>
+					<caption>{ T(ctx, "Factures récentes") }</caption><thead><tr><th>{ T(ctx, "Référence") }</th><th>{ T(ctx, "Partenaire") }</th><th>{ T(ctx, "Type") }</th><th>{ T(ctx, "Date") }</th><th>{ T(ctx, "Statut") }</th><th class="amount">{ T(ctx, "Montant") }</th></tr></thead>
+					<tbody>
+						for _,i:=range invoices {
+							<tr><td><a href={ templ.SafeURL(InvoiceURL(i.ID)) }>{ i.Number }</a></td><td>{ i.Partner }</td><td>{ T(ctx, InvoiceKind(i)) }</td><td>{ i.IssueDate }</td><td><span class={ statusClass(i.Status) }>{ T(ctx, Status(i.Status)) }</span></td><td class="amount">{ Money(i.Total) } { i.Currency }</td></tr>
+						}
+					</tbody>
+				</table>
+			</div>
+		}
+	</div>
 }
 
-templ Upload(csrf,message,orgName,category string) {
- @Layout("Importer une facture","invoices",orgName) {
-@Heading("Importer un justificatif","Facture fournisseur ou dépense : importez un fichier ou prenez une photo, puis vérifiez les données.") {
-}
- <div class="upload-layout"><div class="panel upload-panel"><div class="panel-body">
- if message!="" {
-<div class="notice error" role="alert">{ message }</div>
-}
- <form method="post" action="/app/invoices/upload" enctype="multipart/form-data" hx-post="/app/invoices/upload" hx-encoding="multipart/form-data" hx-target="body" hx-disabled-elt="find button">
- <input type="hidden" name="csrf" value={ csrf }/>
- <label for="purchase_category">Nature de l’opération</label><select id="purchase_category" name="purchase_category"><option value="stock" selected?={ category!="expense" }>Achat de marchandises — entrée en stock</option><option value="expense" selected?={ category=="expense" }>Dépense de l’entreprise — sans stock</option></select>
- <div class="capture-options"><div><label for="document">Importer un fichier</label><input id="document" type="file" name="document" accept="image/png,image/jpeg,application/pdf"/></div>
- <div><label for="camera">Prendre une photo</label><input id="camera" type="file" name="camera" accept="image/jpeg,image/png" capture="environment"/><p class="muted">Sur un téléphone compatible, ce bouton ouvre l’appareil photo. Choisissez un seul fichier ou une seule photo.</p></div></div><p class="muted">PNG, JPEG ou PDF · 10 Mo maximum. En mode vision : PDF de 1 à 5 pages.</p>
- <div class="actions"><button type="submit">Extraire les données</button><span class="htmx-indicator" role="status">Analyse en cours…</span></div>
- </form></div></div><aside class="upload-visual"><img src="/static/extraction-review.jpg" alt=""/><div><h2>L’analyse ouvre le travail.</h2><p>Relisez les données extraites et confirmez chaque facture avant sa comptabilisation.</p></div></aside></div>
-}
+templ Invoices(invoices []documents.Invoice, orgName string) {
+	@Layout("Factures", "invoices", orgName) {
+		@Heading(T(ctx, "Factures"), "Créez vos ventes ou importez vos justificatifs externes.") {
+			<div class="actions">
+				<a class="button secondary" href="/app/invoices/sales/new">{ T(ctx, "Créer une vente") }</a>
+				<a class="button" href="/app/invoices/new">{ T(ctx, "Importer un justificatif") }</a>
+			</div>
+		} @InvoiceTable(invoices)
+	}
 }
 
-templ Review(i documents.Invoice,csrf,message,orgName string, settlements []cash.Settlement, due, standard string) {
- @Layout("Vérifier la facture","invoices",orgName) {
- @Heading(i.Number,"Vérifiez le document et les données avant de comptabiliser.") {
-<div class="actions"><span class={ statusClass(i.Status) }>{ Status(i.Status) }</span><a class="button secondary" href={ templ.SafeURL(InvoiceURL(i.ID)+"/json") }>Télécharger le JSON</a></div>
-}
- if message!="" {
-<div class="notice error" role="alert">{ message }</div>
-}
- if i.ExtractionMode=="structured" {
-<div class="notice">Vente créée dans PanlyackERP. Les données sont déjà structurées ; aucune analyse IA n’a été effectuée.</div>
-}
- if i.ExtractionMode=="demo" {
-<div class="notice">Mode démonstration : les données ci-dessous sont simulées. Elles ne sont pas extraites de votre fichier.</div>
-}
- if i.ExtractionMode!="demo" {
- for _, warning := range i.Warnings {
-<div class="notice">{ warning }</div>
-}
-}
- if i.Status=="POSTED" {
-<div class="notice" role="status">Facture comptabilisée. Journal, trésorerie et tableau de bord mis à jour. Ce document est désormais en lecture seule.
-if i.PurchaseCategory=="expense" {
-Le stock n’a pas été modifié.
-} else {
-Les mouvements de stock ont été enregistrés.
-}
-</div>
-}
- <div class="review-grid"><section class="panel document-panel"><div class="panel-body"><h2>Document d’origine</h2><a href={ templ.SafeURL(InvoiceURL(i.ID)+"/document") } target="_blank" rel="noopener">Ouvrir le document</a>
- if i.ExtractionMode!="demo" && i.ExtractionMode!="structured" {
-<p class="muted">Confiance indiquée : { i.Confidence }</p>
-}
- </div><iframe class="preview" title="Document d’origine" src={ templ.SafeURL(InvoiceURL(i.ID)+"/document") }></iframe></section>
- <section class="panel review-panel"><div class="panel-body"><h2>Données de la facture</h2>
- <form method="post" action={ templ.SafeURL(InvoiceURL(i.ID)+"/review") }>
- <input type="hidden" name="csrf" value={ csrf }/><input type="hidden" name="version" value={ strconv.Itoa(i.Version) }/>
- <fieldset disabled?={ i.Status!="NEEDS_REVIEW" }><h3 class="section-title">Informations générales</h3><div class="form-grid">
- <div><label for="number">Référence</label><input id="number" name="number" value={ i.Number } required maxlength="100"/></div>
- <div><label for="partner">Fournisseur / client</label><input id="partner" name="partner" value={ i.Partner } required maxlength="200"/></div>
- <div><label for="date">Date</label><input id="date" name="issue_date" type="date" value={ i.IssueDate } required/></div>
- <div><label for="direction">Opération</label>
-if i.ExtractionMode=="structured" {
-<input id="direction" name="direction" value="SALE" readonly/>
-} else if i.PurchaseCategory!="" {
-<input type="hidden" name="direction" value="PURCHASE"/><select id="direction" name="purchase_category"><option value="stock" selected?={ i.PurchaseCategory!="expense" }>Achat de marchandises</option><option value="expense" selected?={ i.PurchaseCategory=="expense" }>Dépense sans stock</option></select>
-} else {
-<select id="direction" name="direction"><option value="PURCHASE" selected?={ i.Direction=="PURCHASE" }>Achat</option><option value="SALE" selected?={ i.Direction=="SALE" }>Vente</option></select>
-}
-</div>
- <div><label for="currency">Devise</label><select id="currency" name="currency">
-for _,currency:=range []string{"USD","EUR","CDF","ZAR"} {
-<option value={ currency } selected?={ i.Currency==currency }>{ currency }</option>
-}
-</select></div>
- <div><label for="total">Total, taxes incluses</label><input id="total" name="total" inputmode="decimal" value={ i.Total } readonly?={ i.ExtractionMode=="structured" } required/></div>
- </div><div class="section-heading"><h3 class="section-title">Lignes de facture</h3><p class="muted">
-if i.PurchaseCategory=="expense" {
-Ces lignes sont des charges, sans entrée en stock.
-} else {
-Les SKU désignent les produits. Pour une vente, utilisez des SKU déjà en stock et leur unité exacte.
-}
-</p></div>
- @InvoiceLines(i)
- <div class="section-heading"><h3 class="section-title">Règlement</h3><p class="muted">Le solde non réglé devient une dette fournisseur ou une créance client.</p></div><div class="form-grid">
- for _,method:=range []string{"CASH","BANK","MOBILE_MONEY","CARD"} {
-<div><label for={ method }>{ paymentLabel(method) }</label><input id={ method } name={ "payment_"+method } value={ paymentAmount(i,method) } inputmode="decimal"/></div>
-}
- </div>
- if standard=="US_GAAP" && i.Status!="POSTED" {
-<p class="notice">Politique US simplifiée : taxe d’achat non récupérable incluse dans le coût ; taxe de vente imposée à l’acheteur, collectée pour l’administration. Vérifiez le traitement et le taux applicables à votre juridiction avant confirmation. La use tax, les taxes imposées au vendeur et les déclarations fiscales ne sont pas gérées.</p>
-}
- if i.Status=="NEEDS_REVIEW" {
-<div class="actions"><button name="action" value="confirm">Confirmer les données</button><button class="secondary" name="action" value="save">Enregistrer</button></div>
-}
- </fieldset></form>
- if i.Status=="CONFIRMED" {
-<div class="actions"><form method="post" action={ templ.SafeURL(InvoiceURL(i.ID)+"/post") }><input type="hidden" name="csrf" value={ csrf }/><button>Comptabiliser la facture</button></form><form method="post" action={ templ.SafeURL(InvoiceURL(i.ID)+"/reopen") }><input type="hidden" name="csrf" value={ csrf }/><button class="secondary">Reprendre la vérification</button></form></div>
-<div class="section-heading"><h3 class="section-title">Proposition de comptes US</h3><p class="muted">Pilote US avec références RAG. Les taxes d’achat sont traitées comme non récupérables et incluses dans le coût ; les taxes de vente sont supposées imposées à l’acheteur et collectées pour l’administration. Vérifiez la juridiction et le traitement avant de confirmer. Aucun taux n’est déduit automatiquement. Le modèle ne peut pas enregistrer d’écriture.</p></div><button type="button" class="secondary" hx-get={ InvoiceURL(i.ID)+"/accounting-proposal" } hx-target="#accounting-proposal" hx-disabled-elt="this">Proposer les comptes<span class="htmx-indicator"> · Analyse en cours…</span></button><div id="accounting-proposal" aria-live="polite"></div>
-}
- if i.Status=="POSTED" {
-<div class="actions"><a href="/app/accounting">Voir le journal</a><a href="/app/dashboard">Voir les soldes</a></div>
- <div class="section-heading"><h3 class="section-title">Solde de la facture</h3><p>{ SettlementBalanceLabel(i.Direction) } : <strong>{ SettlementAmount(due) } USD</strong></p></div>
-if len(settlements)>0 {
-<div class="table-scroll"><table><thead><tr><th>Date</th><th>Moyen</th><th class="amount">Montant USD</th></tr></thead><tbody>
-for _,payment:=range settlements {
-<tr><td>{ payment.Date }</td><td>{ paymentLabel(payment.Method) }</td><td class="amount">{ SettlementAmount(payment.Amount) }</td></tr>
-}</tbody></table></div>
-}
-if due!="0" {
-<form class="settlement-form" method="post" action={ templ.SafeURL(InvoiceURL(i.ID)+"/settlements") } hx-post={ InvoiceURL(i.ID)+"/settlements" } hx-target="body" hx-disabled-elt="find button"><input type="hidden" name="csrf" value={ csrf }/><input type="hidden" name="request_id" value={ uuid.NewString() }/>
-<div class="form-grid"><div><label for="settlement_amount">Montant</label><input id="settlement_amount" name="amount" inputmode="decimal" value={ due } required/></div><div><label for="settlement_method">Moyen de paiement</label><select id="settlement_method" name="method"><option value="CASH">Espèces</option><option value="BANK">Banque</option><option value="MOBILE_MONEY">Mobile money</option><option value="CARD">Carte</option></select></div></div>
-<button type="submit">
-if i.Direction=="PURCHASE" {
-Enregistrer le paiement
-} else {
-Enregistrer l’encaissement
-}
-</button></form>
-} else {
-<p class="muted">Cette facture est entièrement réglée.</p>
-}
-}
- </div></section></div>
-}
+templ Upload(csrf, message, orgName, category string) {
+	@Layout("Importer une facture", "invoices", orgName) {
+		@Heading(T(ctx, "Importer un justificatif"), "Facture fournisseur ou dépense : importez un fichier ou prenez une photo, puis vérifiez les données.") {
+		}
+		<div class="upload-layout">
+			<div class="panel upload-panel">
+				<div class="panel-body">
+					if message!="" {
+						<div class="notice error" role="alert">{ T(ctx, message) }</div>
+					}
+					<form method="post" action="/app/invoices/upload" enctype="multipart/form-data" hx-post="/app/invoices/upload" hx-encoding="multipart/form-data" hx-target="body" hx-disabled-elt="find button">
+						<input type="hidden" name="csrf" value={ csrf }/>
+						<label for="purchase_category">{ T(ctx, "Nature de l’opération") }</label><select id="purchase_category" name="purchase_category"><option value="stock" selected?={ category!="expense" }>{ T(ctx, "Achat de marchandises — entrée en stock") }</option><option value="expense" selected?={ category=="expense" }>{ T(ctx, "Dépense de l’entreprise — sans stock") }</option></select>
+						<div class="capture-options">
+							<div><label for="document">{ T(ctx, "Importer un fichier") }</label><input id="document" type="file" name="document" accept="image/png,image/jpeg,application/pdf"/></div>
+							<div><label for="camera">{ T(ctx, "Prendre une photo") }</label><input id="camera" type="file" name="camera" accept="image/jpeg,image/png" capture="environment"/><p class="muted">{ T(ctx, "Sur un téléphone compatible, ce bouton ouvre l’appareil photo. Choisissez un seul fichier ou une seule photo.") }</p></div>
+						</div>
+						<p class="muted">{ T(ctx, "PNG, JPEG ou PDF · 10 Mo maximum. En mode vision : PDF de 1 à 5 pages.") }</p>
+						<div class="actions"><button type="submit">{ T(ctx, "Extraire les données") }</button><span class="htmx-indicator" role="status">{ T(ctx, "Analyse en cours…") }</span></div>
+					</form>
+				</div>
+			</div>
+			<aside class="upload-visual"><img src="/static/extraction-review.jpg" alt=""/><div><h2>{ T(ctx, "L’analyse ouvre le travail.") }</h2><p>{ T(ctx, "Relisez les données extraites et confirmez chaque facture avant sa comptabilisation.") }</p></div></aside>
+		</div>
+	}
 }
 
-func paymentLabel(method string) string { return map[string]string{"CASH":"Espèces","BANK":"Banque","MOBILE_MONEY":"Mobile money","CARD":"Carte"}[method] }
-func paymentAmount(i documents.Invoice,method string)string { for _,p:=range i.Payments {if p.Method==method{return p.Amount}};return "0" }
-func statusClass(status string) string { if status=="NEEDS_REVIEW" { return "badge review" }; if status=="CONFIRMED" { return "badge confirmed" }; return "badge" }
+templ Review(i documents.Invoice, csrf, message, orgName string, settlements []cash.Settlement, due, standard string) {
+	@Layout("Vérifier la facture", "invoices", orgName) {
+		@Heading(i.Number, "Vérifiez le document et les données avant de comptabiliser.") {
+			<div class="actions"><span class={ statusClass(i.Status) }>{ T(ctx, Status(i.Status)) }</span><a class="button secondary" href={ templ.SafeURL(InvoiceURL(i.ID) + "/json") }>{ T(ctx, "Télécharger le JSON") }</a></div>
+		}
+		if message!="" {
+			<div class="notice error" role="alert">{ T(ctx, message) }</div>
+		}
+		if i.ExtractionMode=="structured" {
+			<div class="notice">{ T(ctx, "Vente créée dans PanlyackERP. Les données sont déjà structurées ; aucune analyse IA n’a été effectuée.") }</div>
+		}
+		if i.ExtractionMode=="demo" {
+			<div class="notice">{ T(ctx, "Mode démonstration : les données ci-dessous sont simulées. Elles ne sont pas extraites de votre fichier.") }</div>
+		}
+		if i.ExtractionMode!="demo" {
+			for _, warning := range i.Warnings {
+				<div class="notice">{ warning }</div>
+			}
+		}
+		if i.Status=="POSTED" {
+			<div class="notice" role="status">
+				{ T(ctx, "Facture comptabilisée. Journal, trésorerie et tableau de bord mis à jour. Ce document est désormais en lecture seule.") }
+				if i.PurchaseCategory=="expense" {
+					{ T(ctx, "Le stock n’a pas été modifié.") }
+				} else {
+					{ T(ctx, "Les mouvements de stock ont été enregistrés.") }
+				}
+			</div>
+		}
+		<div class="review-grid">
+			<section class="panel document-panel">
+				<div class="panel-body">
+					<h2>{ T(ctx, "Document d’origine") }</h2><a href={ templ.SafeURL(InvoiceURL(i.ID) + "/document") } target="_blank" rel="noopener">{ T(ctx, "Ouvrir le document") }</a>
+					if i.ExtractionMode!="demo" && i.ExtractionMode!="structured" {
+						<p class="muted">{ T(ctx, "Confiance indiquée : ") }{ i.Confidence }</p>
+					}
+				</div><iframe class="preview" title={ T(ctx, "Document d’origine") } src={ templ.SafeURL(InvoiceURL(i.ID) + "/document") }></iframe>
+			</section>
+			<section class="panel review-panel">
+				<div class="panel-body">
+					<h2>{ T(ctx, "Données de la facture") }</h2>
+					<form method="post" action={ templ.SafeURL(InvoiceURL(i.ID) + "/review") }>
+						<input type="hidden" name="csrf" value={ csrf }/><input type="hidden" name="version" value={ strconv.Itoa(i.Version) }/>
+						<fieldset disabled?={ i.Status!="NEEDS_REVIEW" }>
+							<h3 class="section-title">{ T(ctx, "Informations générales") }</h3>
+							<div class="form-grid">
+								<div><label for="number">{ T(ctx, "Référence") }</label><input id="number" name="number" value={ i.Number } required maxlength="100"/></div>
+								<div><label for="partner">{ T(ctx, "Fournisseur / client") }</label><input id="partner" name="partner" value={ i.Partner } required maxlength="200"/></div>
+								<div><label for="date">{ T(ctx, "Date") }</label><input id="date" name="issue_date" type="date" value={ i.IssueDate } required/></div>
+								<div>
+									<label for="direction">{ T(ctx, "Opération") }</label>
+									if i.ExtractionMode=="structured" {
+										<input id="direction" name="direction" value="SALE" readonly/>
+									} else if i.PurchaseCategory!="" {
+										<input type="hidden" name="direction" value="PURCHASE"/><select id="direction" name="purchase_category"><option value="stock" selected?={ i.PurchaseCategory!="expense" }>{ T(ctx, "Achat de marchandises") }</option><option value="expense" selected?={ i.PurchaseCategory=="expense" }>{ T(ctx, "Dépense sans stock") }</option></select>
+									} else {
+										<select id="direction" name="direction"><option value="PURCHASE" selected?={ i.Direction=="PURCHASE" }>{ T(ctx, "Achat") }</option><option value="SALE" selected?={ i.Direction=="SALE" }>{ T(ctx, "Vente") }</option></select>
+									}
+								</div>
+								<div>
+									<label for="currency">{ T(ctx, "Devise") }</label>
+									<select id="currency" name="currency">
+										for _,currency:=range []string{"USD","EUR","CDF","ZAR"} {
+											<option value={ currency } selected?={ i.Currency==currency }>{ currency }</option>
+										}
+									</select>
+								</div>
+								<div><label for="total">{ T(ctx, "Total, taxes incluses") }</label><input id="total" name="total" inputmode="decimal" value={ i.Total } readonly?={ i.ExtractionMode=="structured" } required/></div>
+							</div>
+							<div class="section-heading">
+								<h3 class="section-title">{ T(ctx, "Lignes de facture") }</h3>
+								<p class="muted">
+									if i.PurchaseCategory=="expense" {
+										{ T(ctx, "Ces lignes sont des charges, sans entrée en stock.") }
+									} else {
+										{ T(ctx, "Les SKU désignent les produits. Pour une vente, utilisez des SKU déjà en stock et leur unité exacte.") }
+									}
+								</p>
+							</div>
+							@InvoiceLines(i)
+							<div class="section-heading"><h3 class="section-title">{ T(ctx, "Règlement") }</h3><p class="muted">{ T(ctx, "Le solde non réglé devient une dette fournisseur ou une créance client.") }</p></div>
+							<div class="form-grid">
+								for _,method:=range []string{"CASH","BANK","MOBILE_MONEY","CARD"} {
+									<div><label for={ method }>{ T(ctx, paymentLabel(method)) }</label><input id={ method } name={ "payment_" + method } value={ paymentAmount(i, method) } inputmode="decimal"/></div>
+								}
+							</div>
+							if standard=="US_GAAP" && i.Status!="POSTED" {
+								<p class="notice">{ T(ctx, "Politique US simplifiée : taxe d’achat non récupérable incluse dans le coût ; taxe de vente imposée à l’acheteur, collectée pour l’administration. Vérifiez le traitement et le taux applicables à votre juridiction avant confirmation. La use tax, les taxes imposées au vendeur et les déclarations fiscales ne sont pas gérées.") }</p>
+							}
+							if i.Status=="NEEDS_REVIEW" {
+								<div class="actions"><button name="action" value="confirm">{ T(ctx, "Confirmer les données") }</button><button class="secondary" name="action" value="save">{ T(ctx, "Enregistrer") }</button></div>
+							}
+						</fieldset>
+					</form>
+					if i.Status=="CONFIRMED" {
+						<div class="actions"><form method="post" action={ templ.SafeURL(InvoiceURL(i.ID) + "/post") }><input type="hidden" name="csrf" value={ csrf }/><button>{ T(ctx, "Comptabiliser la facture") }</button></form><form method="post" action={ templ.SafeURL(InvoiceURL(i.ID) + "/reopen") }><input type="hidden" name="csrf" value={ csrf }/><button class="secondary">{ T(ctx, "Reprendre la vérification") }</button></form></div>
+						<div class="section-heading"><h3 class="section-title">{ T(ctx, "Proposition de comptes US") }</h3><p class="muted">{ T(ctx, "Pilote US avec références RAG. Les taxes d’achat sont traitées comme non récupérables et incluses dans le coût ; les taxes de vente sont supposées imposées à l’acheteur et collectées pour l’administration. Vérifiez la juridiction et le traitement avant de confirmer. Aucun taux n’est déduit automatiquement. Le modèle ne peut pas enregistrer d’écriture.") }</p></div><button type="button" class="secondary" hx-get={ InvoiceURL(i.ID) + "/accounting-proposal" } hx-target="#accounting-proposal" hx-disabled-elt="this">{ T(ctx, "Proposer les comptes") }<span class="htmx-indicator">{ T(ctx, "· Analyse en cours…") }</span></button>
+						<div id="accounting-proposal" aria-live="polite"></div>
+					}
+					if i.Status=="POSTED" {
+						<div class="actions"><a href="/app/accounting">{ T(ctx, "Voir le journal") }</a><a href="/app/dashboard">{ T(ctx, "Voir les soldes") }</a></div>
+						<div class="section-heading"><h3 class="section-title">{ T(ctx, "Solde de la facture") }</h3><p>{ T(ctx, SettlementBalanceLabel(i.Direction)) } : <strong>{ SettlementAmount(due) } USD</strong></p></div>
+						if len(settlements)>0 {
+							<div class="table-scroll">
+								<table>
+									<thead><tr><th>{ T(ctx, "Date") }</th><th>{ T(ctx, "Moyen") }</th><th class="amount">{ T(ctx, "Montant USD") }</th></tr></thead>
+									<tbody>
+										for _,payment:=range settlements {
+											<tr><td>{ payment.Date }</td><td>{ T(ctx, paymentLabel(payment.Method)) }</td><td class="amount">{ SettlementAmount(payment.Amount) }</td></tr>
+										}
+									</tbody>
+								</table>
+							</div>
+						}
+						if due!="0" {
+							<form class="settlement-form" method="post" action={ templ.SafeURL(InvoiceURL(i.ID) + "/settlements") } hx-post={ InvoiceURL(i.ID) + "/settlements" } hx-target="body" hx-disabled-elt="find button">
+								<input type="hidden" name="csrf" value={ csrf }/><input type="hidden" name="request_id" value={ uuid.NewString() }/>
+								<div class="form-grid"><div><label for="settlement_amount">{ T(ctx, "Montant") }</label><input id="settlement_amount" name="amount" inputmode="decimal" value={ due } required/></div><div><label for="settlement_method">{ T(ctx, "Moyen de paiement") }</label><select id="settlement_method" name="method"><option value="CASH">{ T(ctx, "Espèces") }</option><option value="BANK">{ T(ctx, "Banque") }</option><option value="MOBILE_MONEY">{ T(ctx, "Mobile money") }</option><option value="CARD">{ T(ctx, "Carte") }</option></select></div></div>
+								<button type="submit">
+									if i.Direction=="PURCHASE" {
+										{ T(ctx, "Enregistrer le paiement") }
+									} else {
+										{ T(ctx, "Enregistrer l’encaissement") }
+									}
+								</button>
+							</form>
+						} else {
+							<p class="muted">{ T(ctx, "Cette facture est entièrement réglée.") }</p>
+						}
+					}
+				</div>
+			</section>
+		</div>
+	}
+}
 
-templ Inventory(products []inventory.Product,orgName string) {
-@Layout("Stock","inventory",orgName) {
-@Heading("Stock","Quantités disponibles et valeur comptable des marchandises.") {
-} <div class="panel table-scroll"><table><thead><tr><th>SKU</th><th>Produit</th><th>Unité</th><th class="amount">Disponible</th><th class="amount">Valeur USD</th></tr></thead><tbody>
-for _,p:=range products {
-<tr><td>{ p.SKU }</td><td>{ p.Name }</td><td>{ p.Unit }</td><td class="amount">{ p.Quantity.String() }</td><td class="amount">{ p.Value.StringFixed(2) }</td></tr>
-}</tbody></table></div>
-} }
+func paymentLabel(method string) string {
+	return map[string]string{"CASH": "Espèces", "BANK": "Banque", "MOBILE_MONEY": "Mobile money", "CARD": "Carte"}[method]
+}
+func paymentAmount(i documents.Invoice, method string) string {
+	for _, p := range i.Payments {
+		if p.Method == method {
+			return p.Amount
+		}
+	}
+	return "0"
+}
+func statusClass(status string) string {
+	if status == "NEEDS_REVIEW" {
+		return "badge review"
+	}
+	if status == "CONFIRMED" {
+		return "badge confirmed"
+	}
+	return "badge"
+}
+
+templ Inventory(products []inventory.Product, orgName string) {
+	@Layout("Stock", "inventory", orgName) {
+		@Heading(T(ctx, "Stock"), "Quantités disponibles et valeur comptable des marchandises.") {
+		}
+		<div class="panel table-scroll">
+			<table>
+				<thead><tr><th>SKU</th><th>{ T(ctx, "Produit") }</th><th>{ T(ctx, "Unité") }</th><th class="amount">{ T(ctx, "Disponible") }</th><th class="amount">{ T(ctx, "Valeur USD") }</th></tr></thead>
+				<tbody>
+					for _,p:=range products {
+						<tr><td>{ p.SKU }</td><td>{ p.Name }</td><td>{ p.Unit }</td><td class="amount">{ p.Quantity.String() }</td><td class="amount">{ p.Value.StringFixed(2) }</td></tr>
+					}
+				</tbody>
+			</table>
+		</div>
+	}
+}
 
 templ Accounting(rows []accounting.JournalRow, balances []accounting.BalanceRow, selectedAccount, orgName string) {
-@Layout("Comptabilité","accounting",orgName) {
-@Heading("Comptabilité","Balance par compte et écritures validées, sans modification possible.") {
-} <div class="accounting-visual"><img src="/static/accounting-ledger.webp" alt=""/><div><h2>Chaque montant garde sa trace.</h2><p>Parcourez la balance puis ouvrez le grand livre d’un compte.</p></div></div>
-<section class="panel table-scroll" id="trial-balance" aria-labelledby="balance-title"><table><caption id="balance-title">Balance générale · USD</caption><thead><tr><th>Compte</th><th>Libellé</th><th class="amount">Débit cumulé</th><th class="amount">Crédit cumulé</th><th class="amount">Solde débiteur</th><th class="amount">Solde créditeur</th></tr></thead><tbody>
-for _,b:=range balances {
-<tr><td><a href={ templ.SafeURL("/app/accounting?account="+b.Code+"#general-ledger") }>{ b.Code }</a></td><td>{ AccountLabel(b.Code,b.Name) }</td><td class="amount">{ Money(b.Debit) }</td><td class="amount">{ Money(b.Credit) }</td><td class="amount">{ Money(b.DebitBalance) }</td><td class="amount">{ Money(b.CreditBalance) }</td></tr>
+	@Layout("Comptabilité", "accounting", orgName) {
+		@Heading(T(ctx, "Comptabilité"), "Balance par compte et écritures validées, sans modification possible.") {
+		}
+		<div class="accounting-visual"><img src="/static/accounting-ledger.webp" alt=""/><div><h2>{ T(ctx, "Chaque montant garde sa trace.") }</h2><p>{ T(ctx, "Parcourez la balance puis ouvrez le grand livre d’un compte.") }</p></div></div>
+		<section class="panel table-scroll" id="trial-balance" aria-labelledby="balance-title">
+			<table>
+				<caption id="balance-title">{ T(ctx, "Balance générale · USD") }</caption><thead><tr><th>{ T(ctx, "Compte") }</th><th>{ T(ctx, "Libellé") }</th><th class="amount">{ T(ctx, "Débit cumulé") }</th><th class="amount">{ T(ctx, "Crédit cumulé") }</th><th class="amount">{ T(ctx, "Solde débiteur") }</th><th class="amount">{ T(ctx, "Solde créditeur") }</th></tr></thead>
+				<tbody>
+					for _,b:=range balances {
+						<tr><td><a href={ templ.SafeURL("/app/accounting?account=" + b.Code + "#general-ledger") }>{ b.Code }</a></td><td>{ T(ctx, AccountLabel(b.Code,b.Name)) }</td><td class="amount">{ Money(b.Debit) }</td><td class="amount">{ Money(b.Credit) }</td><td class="amount">{ Money(b.DebitBalance) }</td><td class="amount">{ Money(b.CreditBalance) }</td></tr>
+					}
+				</tbody>
+				<tfoot><tr><th colspan="4">{ T(ctx, "Total des soldes") }</th><th class="amount">{ TrialBalanceTotals(balances).Debit.StringFixed(2) }</th><th class="amount">{ TrialBalanceTotals(balances).Credit.StringFixed(2) }</th></tr></tfoot>
+			</table>
+		</section>
+		<section class="ledger-section" id="general-ledger" aria-labelledby="ledger-title">
+			<div class="ledger-heading">
+				<div><h2 id="ledger-title">{ T(ctx, "Grand livre") }</h2><p class="muted">{ T(ctx, "Les 400 dernières lignes du compte choisi, ou du journal complet.") }</p></div>
+				<form method="get" action="/app/accounting" class="ledger-filter">
+					<label for="account">{ T(ctx, "Compte") }</label>
+					<select id="account" name="account">
+						<option value="">{ T(ctx, "Tous les comptes") }</option>
+						for _,b:=range balances {
+							<option value={ b.Code } selected?={ selectedAccount==b.Code }>{ b.Code } · { T(ctx, AccountLabel(b.Code,b.Name)) }</option>
+						}
+					</select><button type="submit" class="secondary">{ T(ctx, "Afficher") }</button>
+				</form>
+			</div>
+			<div class="panel table-scroll">
+				<table>
+					<thead><tr><th>{ T(ctx, "Date") }</th><th>{ T(ctx, "Référence") }</th><th>{ T(ctx, "Compte") }</th><th>{ T(ctx, "Libellé") }</th><th class="amount">{ T(ctx, "Débit USD") }</th><th class="amount">{ T(ctx, "Crédit USD") }</th></tr></thead>
+					<tbody>
+						for _,r:=range rows {
+							<tr><td>{ r.Date }</td><td>{ r.Reference }</td><td>{ r.Code }</td><td>{ T(ctx, AccountLabel(r.Code,r.Name)) }</td><td class="amount">{ Money(r.Debit) }</td><td class="amount">{ Money(r.Credit) }</td></tr>
+						}
+						if len(rows)==0 {
+							<tr><td colspan="6">{ T(ctx, "Aucune écriture pour ce compte.") }</td></tr>
+						}
+					</tbody>
+				</table>
+			</div>
+		</section>
+	}
 }
-</tbody><tfoot><tr><th colspan="4">Total des soldes</th><th class="amount">{ TrialBalanceTotals(balances).Debit.StringFixed(2) }</th><th class="amount">{ TrialBalanceTotals(balances).Credit.StringFixed(2) }</th></tr></tfoot></table></section>
-<section class="ledger-section" id="general-ledger" aria-labelledby="ledger-title"><div class="ledger-heading"><div><h2 id="ledger-title">Grand livre</h2><p class="muted">Les 400 dernières lignes du compte choisi, ou du journal complet.</p></div><form method="get" action="/app/accounting" class="ledger-filter"><label for="account">Compte</label><select id="account" name="account"><option value="">Tous les comptes</option>
-for _,b:=range balances {
-<option value={ b.Code } selected?={ selectedAccount==b.Code }>{ b.Code } · { AccountLabel(b.Code,b.Name) }</option>
+
+templ Cash(accounts []cash.Account, movements []cash.Movement, orgName string) {
+	@Layout("Trésorerie", "cash", orgName) {
+		@Heading(T(ctx, "Trésorerie"), "Soldes par moyen de paiement et historique des mouvements.") {
+		}
+		<dl class="metrics">
+			for _,a:=range accounts {
+				<div class="metric"><dt>{ T(ctx, paymentLabel(a.Method)) }</dt><dd>{ Money(a.Balance) } <small class="text-xs">USD</small></dd></div>
+			}
+		</dl>
+		<div class="panel table-scroll">
+			<table>
+				<thead><tr><th>{ T(ctx, "Date") }</th><th>{ T(ctx, "Moyen de paiement") }</th><th class="amount">{ T(ctx, "Mouvement USD") }</th></tr></thead>
+				<tbody>
+					for _,m:=range movements {
+						<tr><td>{ m.Date }</td><td>{ T(ctx, paymentLabel(m.Method)) }</td><td class="amount">{ Money(m.Amount) }</td></tr>
+					}
+				</tbody>
+			</table>
+		</div>
+	}
 }
-</select><button type="submit" class="secondary">Afficher</button></form></div><div class="panel table-scroll"><table><thead><tr><th>Date</th><th>Référence</th><th>Compte</th><th>Libellé</th><th class="amount">Débit USD</th><th class="amount">Crédit USD</th></tr></thead><tbody>
-for _,r:=range rows {
-<tr><td>{ r.Date }</td><td>{ r.Reference }</td><td>{ r.Code }</td><td>{ AccountLabel(r.Code,r.Name) }</td><td class="amount">{ Money(r.Debit) }</td><td class="amount">{ Money(r.Credit) }</td></tr>
+
+func activePage(active, path string) string {
+	if active == path {
+		return "page"
+	}
+	return "false"
 }
-if len(rows)==0 {
-<tr><td colspan="6">Aucune écriture pour ce compte.</td></tr>
-}
-</tbody></table></div></section>
-} }
 
-templ Cash(accounts []cash.Account,movements []cash.Movement,orgName string) {
-@Layout("Trésorerie","cash",orgName) {
-@Heading("Trésorerie","Soldes par moyen de paiement et historique des mouvements.") {
-} <dl class="metrics">
-for _,a:=range accounts {
-<div class="metric"><dt>{ paymentLabel(a.Method) }</dt><dd>{ Money(a.Balance) } <small class="text-xs">USD</small></dd></div>
-}</dl><div class="panel table-scroll"><table><thead><tr><th>Date</th><th>Moyen de paiement</th><th class="amount">Mouvement USD</th></tr></thead><tbody>
-for _,m:=range movements {
-<tr><td>{ m.Date }</td><td>{ paymentLabel(m.Method) }</td><td class="amount">{ Money(m.Amount) }</td></tr>
-}</tbody></table></div>
-} }
-
-func activePage(active,path string) string { if active==path { return "page" };return "false" }
-
-
-templ NewSale(i documents.Invoice,csrf,message,orgName string) {
- @Layout("Créer une vente","invoices",orgName) {
- @Heading("Créer une facture de vente","Saisissez le client et les articles. Les données restent structurées, sans analyse IA.") {
- <a href="/app/invoices/new">Importer plutôt un justificatif</a>
- }
- if message!="" {
- <div class="notice error" role="alert">{ message }</div>
- }
- <section class="panel"><div class="panel-body">
- <form method="post" action="/app/invoices/sales" hx-post="/app/invoices/sales" hx-target="body" hx-disabled-elt="find button">
- <input type="hidden" name="csrf" value={ csrf }/><input type="hidden" name="direction" value="SALE"/>
- <div class="form-grid">
- <div><label for="sale-number">Numéro de facture</label><input id="sale-number" name="number" value={ i.Number } required maxlength="100"/></div>
- <div><label for="sale-client">Client</label><input id="sale-client" name="partner" value={ i.Partner } required maxlength="200"/></div>
- <div><label for="sale-date">Date</label><input id="sale-date" name="issue_date" type="date" value={ i.IssueDate } required/></div>
- <div><label for="sale-currency">Devise</label><select id="sale-currency" name="currency"><option value="USD">USD</option></select></div>
- </div><div class="section-heading"><h2>Articles vendus</h2><p class="muted">Utilisez les SKU et les unités de votre stock. Les montants et les taxes sont calculés par l’application. <a href="/app/inventory" target="_blank" rel="noopener">Consulter le stock</a></p></div>
- @InvoiceLines(i)
- <div class="section-heading"><h2>Règlement initial</h2><p class="muted">Laissez vide pour une vente à crédit. Le montant non réglé devient une créance client.</p></div>
- <div class="form-grid">
- for _,method:=range []string{"CASH","BANK","MOBILE_MONEY","CARD"} {
- <div><label for={ "sale-"+method }>{ paymentLabel(method) }</label><input id={ "sale-"+method } name={ "payment_"+method } value={ paymentAmount(i,method) } inputmode="decimal"/></div>
- }
- </div><div class="actions"><button type="submit" name="action" value="create">Créer la facture</button><a href="/app/invoices">Annuler</a><span class="htmx-indicator" role="status">Enregistrement…</span></div>
- <p class="muted">Vous pourrez télécharger le JSON et ouvrir la facture imprimable. La confirmation et la comptabilisation restent des étapes distinctes.</p>
- </form></div></section>
- }
+templ NewSale(i documents.Invoice, csrf, message, orgName string) {
+	@Layout("Créer une vente", "invoices", orgName) {
+		@Heading(T(ctx, "Créer une facture de vente"), "Saisissez le client et les articles. Les données restent structurées, sans analyse IA.") {
+			<a href="/app/invoices/new">{ T(ctx, "Importer plutôt un justificatif") }</a>
+		}
+		if message!="" {
+			<div class="notice error" role="alert">{ T(ctx, message) }</div>
+		}
+		<section class="panel">
+			<div class="panel-body">
+				<form method="post" action="/app/invoices/sales" hx-post="/app/invoices/sales" hx-target="body" hx-disabled-elt="find button">
+					<input type="hidden" name="csrf" value={ csrf }/><input type="hidden" name="direction" value="SALE"/>
+					<div class="form-grid">
+						<div><label for="sale-number">{ T(ctx, "Numéro de facture") }</label><input id="sale-number" name="number" value={ i.Number } required maxlength="100"/></div>
+						<div><label for="sale-client">{ T(ctx, "Client") }</label><input id="sale-client" name="partner" value={ i.Partner } required maxlength="200"/></div>
+						<div><label for="sale-date">{ T(ctx, "Date") }</label><input id="sale-date" name="issue_date" type="date" value={ i.IssueDate } required/></div>
+						<div><label for="sale-currency">{ T(ctx, "Devise") }</label><select id="sale-currency" name="currency"><option value="USD">USD</option></select></div>
+					</div>
+					<div class="section-heading"><h2>{ T(ctx, "Articles vendus") }</h2><p class="muted">{ T(ctx, "Utilisez les SKU et les unités de votre stock. Les montants et les taxes sont calculés par l’application. ") }<a href="/app/inventory" target="_blank" rel="noopener">{ T(ctx, "Consulter le stock") }</a></p></div>
+					@InvoiceLines(i)
+					<div class="section-heading"><h2>{ T(ctx, "Règlement initial") }</h2><p class="muted">{ T(ctx, "Laissez vide pour une vente à crédit. Le montant non réglé devient une créance client.") }</p></div>
+					<div class="form-grid">
+						for _,method:=range []string{"CASH","BANK","MOBILE_MONEY","CARD"} {
+							<div><label for={ "sale-" + method }>{ T(ctx, paymentLabel(method)) }</label><input id={ "sale-" + method } name={ "payment_" + method } value={ paymentAmount(i, method) } inputmode="decimal"/></div>
+						}
+					</div>
+					<div class="actions"><button type="submit" name="action" value="create">{ T(ctx, "Créer la facture") }</button><a href="/app/invoices">{ T(ctx, "Annuler") }</a><span class="htmx-indicator" role="status">{ T(ctx, "Enregistrement…") }</span></div>
+					<p class="muted">{ T(ctx, "Vous pourrez télécharger le JSON et ouvrir la facture imprimable. La confirmation et la comptabilisation restent des étapes distinctes.") }</p>
+				</form>
+			</div>
+		</section>
+	}
 }
 
 templ SourceImage(url string) {
- <!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Justificatif original</title><link rel="icon" href="/static/panlyack-logo.png"/><link rel="stylesheet" href="/static/app.css"/></head><body class="source-image"><img src={ templ.SafeURL(url) } alt="Justificatif original de la facture"/></body></html>
+	<!DOCTYPE html>
+	<html lang={ locale.Language(ctx) }><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>{ T(ctx, "Justificatif original") }</title><link rel="icon" href="/static/panlyack-logo.png"/><link rel="stylesheet" href="/static/app.css"/><link rel="stylesheet" href="/static/language.css"/></head><body class="source-image"><img src={ templ.SafeURL(url) } alt={ T(ctx, "Justificatif original de la facture") }/></body></html>
 }
 
-templ SalesDocument(i documents.Invoice,orgName string) {
- <!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>{ i.Number } · { orgName }</title><link rel="icon" href="/static/panlyack-logo.png"/><link rel="stylesheet" href="/static/app.css"/></head>
- <body class="sales-document"><main class="invoice-sheet">
- <header class="invoice-letterhead"><div><img src="/static/panlyack-logo.png" alt="" width="48" height="48"/><h1>{ orgName }</h1></div><div><h2>Facture de vente</h2><p>{ i.Number }</p><span class={ statusClass(i.Status) }>{ Status(i.Status) }</span></div></header>
- if i.Status!="POSTED" {
- <p class="notice">Brouillon — facture non comptabilisée.</p>
- }
- <dl class="invoice-details"><div><dt>Client</dt><dd>{ i.Partner }</dd></div><div><dt>Date</dt><dd>{ i.IssueDate }</dd></div><div><dt>Devise</dt><dd>{ i.Currency }</dd></div></dl>
- <div class="table-scroll"><table><thead><tr><th>Article</th><th>Quantité</th><th>Unité</th><th class="amount">Prix unitaire</th><th class="amount">Taxe %</th></tr></thead><tbody>
- for _,line:=range i.Lines {
- <tr><td>{ line.Name }<small class="invoice-sku">{ line.SKU }</small></td><td>{ line.Quantity }</td><td>{ line.Unit }</td><td class="amount">{ SettlementAmount(line.UnitPrice) }</td><td class="amount">{ line.TaxRate }</td></tr>
- }
- </tbody></table></div><p class="invoice-total">Total, taxes incluses <strong>{ SettlementAmount(i.Total) } { i.Currency }</strong></p>
- <p class="muted print-help">Utilisez la commande Imprimer du navigateur pour imprimer ou enregistrer en PDF. <a href={ templ.SafeURL(InvoiceURL(i.ID)+"/json") }>Télécharger les données JSON</a></p>
- </main></body></html>
+templ SalesDocument(i documents.Invoice, orgName string) {
+	<!DOCTYPE html>
+	<html lang={ locale.Language(ctx) }>
+		<head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>{ i.Number } · { orgName }</title><link rel="icon" href="/static/panlyack-logo.png"/><link rel="stylesheet" href="/static/app.css"/><link rel="stylesheet" href="/static/language.css"/></head>
+		<body class="sales-document">
+			<main class="invoice-sheet">
+				<header class="invoice-letterhead"><div><img src="/static/panlyack-logo.png" alt="" width="48" height="48"/><h1>{ orgName }</h1></div><div><h2>{ T(ctx, "Facture de vente") }</h2><p>{ i.Number }</p><span class={ statusClass(i.Status) }>{ T(ctx, Status(i.Status)) }</span></div></header>
+				if i.Status!="POSTED" {
+					<p class="notice">{ T(ctx, "Brouillon — facture non comptabilisée.") }</p>
+				}
+				<dl class="invoice-details"><div><dt>{ T(ctx, "Client") }</dt><dd>{ i.Partner }</dd></div><div><dt>{ T(ctx, "Date") }</dt><dd>{ i.IssueDate }</dd></div><div><dt>{ T(ctx, "Devise") }</dt><dd>{ i.Currency }</dd></div></dl>
+				<div class="table-scroll">
+					<table>
+						<thead><tr><th>{ T(ctx, "Article") }</th><th>{ T(ctx, "Quantité") }</th><th>{ T(ctx, "Unité") }</th><th class="amount">{ T(ctx, "Prix unitaire") }</th><th class="amount">{ T(ctx, "Taxe %") }</th></tr></thead>
+						<tbody>
+							for _,line:=range i.Lines {
+								<tr><td>{ line.Name }<small class="invoice-sku">{ line.SKU }</small></td><td>{ line.Quantity }</td><td>{ line.Unit }</td><td class="amount">{ SettlementAmount(line.UnitPrice) }</td><td class="amount">{ line.TaxRate }</td></tr>
+							}
+						</tbody>
+					</table>
+				</div>
+				<p class="invoice-total">{ T(ctx, "Total, taxes incluses ") }<strong>{ SettlementAmount(i.Total) } { i.Currency }</strong></p>
+				<p class="muted print-help">{ T(ctx, "Utilisez la commande Imprimer du navigateur pour imprimer ou enregistrer en PDF. ") }<a href={ templ.SafeURL(InvoiceURL(i.ID) + "/json") }>{ T(ctx, "Télécharger les données JSON") }</a></p>
+			</main>
+		</body>
+	</html>
 }
 
 templ InvoiceLines(i documents.Invoice) {
- <div class="table-scroll"><table class="line-table"><thead><tr><th>SKU</th><th>Produit</th><th>Unité</th><th>Quantité</th><th>Prix unitaire</th><th>Taxe %</th><th>Action</th></tr></thead><tbody>
- for n,l:=range i.Lines {
-<tr>
- <td><input aria-label={ fmt.Sprintf("SKU ligne %d",n+1) } name="sku" value={ l.SKU }/></td>
- <td><input class="name" aria-label={ fmt.Sprintf("Produit ligne %d",n+1) } name="name" value={ l.Name } required/></td>
- <td><input aria-label={ fmt.Sprintf("Unité ligne %d",n+1) } name="unit" value={ l.Unit } required/></td>
- <td><input aria-label={ fmt.Sprintf("Quantité ligne %d",n+1) } name="quantity" value={ l.Quantity } inputmode="decimal" required/></td>
- <td><input aria-label={ fmt.Sprintf("Prix ligne %d",n+1) } name="unit_price" value={ l.UnitPrice } inputmode="decimal" required/></td>
- <td><input aria-label={ fmt.Sprintf("Taxe ligne %d",n+1) } name="tax_rate" value={ l.TaxRate } inputmode="decimal" required/></td>
-<td><button class="secondary" name="remove_line" value={ strconv.Itoa(n) } formnovalidate aria-label={ fmt.Sprintf("Supprimer la ligne %d",n+1) }>Retirer</button></td>
- </tr>
-}
- </tbody></table></div>
- if i.Status=="NEEDS_REVIEW" && len(i.Lines)<100 {
-<button class="secondary" name="action" value="add_line" formnovalidate>Ajouter une ligne</button>
+	<div class="table-scroll">
+		<table class="line-table">
+			<thead><tr><th>SKU</th><th>{ T(ctx, "Produit") }</th><th>{ T(ctx, "Unité") }</th><th>{ T(ctx, "Quantité") }</th><th>{ T(ctx, "Prix unitaire") }</th><th>{ T(ctx, "Taxe %") }</th><th>{ T(ctx, "Action") }</th></tr></thead>
+			<tbody>
+				for n,l:=range i.Lines {
+					<tr>
+						<td><input aria-label={ fmt.Sprintf(T(ctx, "SKU ligne %d"), n+1) } name="sku" value={ l.SKU }/></td>
+						<td><input class="name" aria-label={ fmt.Sprintf(T(ctx, "Produit ligne %d"), n+1) } name="name" value={ l.Name } required/></td>
+						<td><input aria-label={ fmt.Sprintf(T(ctx, "Unité ligne %d"), n+1) } name="unit" value={ l.Unit } required/></td>
+						<td><input aria-label={ fmt.Sprintf(T(ctx, "Quantité ligne %d"), n+1) } name="quantity" value={ l.Quantity } inputmode="decimal" required/></td>
+						<td><input aria-label={ fmt.Sprintf(T(ctx, "Prix ligne %d"), n+1) } name="unit_price" value={ l.UnitPrice } inputmode="decimal" required/></td>
+						<td><input aria-label={ fmt.Sprintf(T(ctx, "Taxe ligne %d"), n+1) } name="tax_rate" value={ l.TaxRate } inputmode="decimal" required/></td>
+						<td><button class="secondary" name="remove_line" value={ strconv.Itoa(n) } formnovalidate aria-label={ fmt.Sprintf(T(ctx, "Supprimer la ligne %d"), n+1) }>{ T(ctx, "Retirer") }</button></td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	</div>
+	if i.Status=="NEEDS_REVIEW" && len(i.Lines)<100 {
+		<button class="secondary" name="action" value="add_line" formnovalidate>{ T(ctx, "Ajouter une ligne") }</button>
+	}
 }
 
+templ LanguageSwitcher() {
+	<nav class="language-switcher" aria-label={ T(ctx, "Langue") }>
+		<a href={ templ.URL(locale.SwitchURL(ctx, "fr")) } lang="fr" hreflang="fr" aria-label={ T(ctx, "Afficher en français") } aria-current={ strconv.FormatBool(locale.Language(ctx) == "fr") }>FR</a>
+		<a href={ templ.URL(locale.SwitchURL(ctx, "en")) } lang="en" hreflang="en" aria-label={ T(ctx, "Afficher en anglais") } aria-current={ strconv.FormatBool(locale.Language(ctx) == "en") }>EN</a>
+	</nav>
+}
+
+templ Pricing() {
+	<section id="pricing" class="landing-pricing landing-wrap" aria-labelledby="pricing-heading">
+		<div class="landing-section-heading"><h2 id="pricing-heading">{ T(ctx, "Choisissez votre rythme.") }</h2><p>{ T(ctx, "Une formule mensuelle selon votre volume de factures.") }</p></div>
+		<div class="pricing-plans">
+			for index, plan := range []struct{Name,Price,Limit string}{{"Essentiel","49","Jusqu’à 200 factures par mois"},{"Croissance","79","Jusqu’à 500 factures par mois"},{"Illimité","150","Factures illimitées"}} {
+				<article class={ "pricing-plan", templ.KV("pricing-plan-featured",index==1) } data-monthly-price={ plan.Price }>
+					<h3>{ T(ctx,plan.Name) }</h3>
+					<p class="pricing-amount"><strong>{ PlanPrice(ctx,plan.Price) }</strong><span>{ T(ctx, "USD / mois") }</span></p>
+					<p class="pricing-limit">{ T(ctx,plan.Limit) }</p>
+					<p class="pricing-description">{ T(ctx, "Factures, stock, comptabilité et trésorerie dans un même espace.") }</p>
+					<a class="landing-button" href="/register">{ T(ctx, "Créer mon espace") } @LandingArrow()</a>
+				</article>
+			}
+		</div>
+		<p class="pricing-note">{ T(ctx, "Montants en USD. L’inscription ouvre actuellement un espace de démonstration, sans paiement.") }</p>
+	</section>
 }

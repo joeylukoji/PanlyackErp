@@ -47,7 +47,7 @@ func (s *Server) requireSession(next http.Handler) http.Handler {
 			return
 		}
 		if session.OrganizationID == "" || session.Role != "OWNER" {
-			http.Error(w, "Accès refusé", http.StatusForbidden)
+			s.userError(w, r, "Accès refusé", http.StatusForbidden)
 			return
 		}
 		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), sessionKey{}, session)))
@@ -56,7 +56,7 @@ func (s *Server) requireSession(next http.Handler) http.Handler {
 
 func (s *Server) unauthenticated(w http.ResponseWriter, r *http.Request) {
 	if len(r.URL.Path) >= 4 && r.URL.Path[:4] == "/api" {
-		http.Error(w, "Authentification requise", http.StatusUnauthorized)
+		s.userError(w, r, "Authentification requise", http.StatusUnauthorized)
 		return
 	}
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
@@ -68,7 +68,7 @@ func (s *Server) loginPage(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 	if s.Auth == nil {
-		http.Error(w, "Authentication unavailable", 503)
+		s.userError(w, r, "Authentication unavailable", 503)
 		return
 	}
 	email, password := r.PostFormValue("email"), r.PostFormValue("password")
@@ -100,7 +100,7 @@ func (s *Server) registerPage(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) register(w http.ResponseWriter, r *http.Request) {
 	if s.Registration.Identity == nil {
-		http.Error(w, "Registration unavailable", http.StatusServiceUnavailable)
+		s.userError(w, r, "Registration unavailable", http.StatusServiceUnavailable)
 		return
 	}
 	name := r.PostFormValue("organization_name")

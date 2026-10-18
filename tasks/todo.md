@@ -20,6 +20,7 @@
 - [x] Local owner login, membership check, session revocation and protected pages.
 - [x] Self-service test registration with isolated organization and complete demo provisioning.
 - [x] Public responsive Panlyack landing page inspired by supplied references, with working navigation to login and registration; desktop/mobile browser checks completed.
+- [x] Persistent French/English interface across the site, authentication, workspace, HTMX fragments and printable sales documents; preserve business data and display monthly USD pricing at $49/200 invoices, $79/500 and $150/unlimited.
 - [x] Align authentication and dashboard with landing typography/lime palette, retain the sidebar and existing forms, and render decimal-derived spending plus real summary/recent-invoice fields.
 - [x] Modernize sidebar navigation with persistent desktop collapse, accessible icon labels/tooltips and independent mobile drawer; verify on the live database-backed app.
 - [x] Partial settlement of posted invoices, including cash, accounting and reporting effects.

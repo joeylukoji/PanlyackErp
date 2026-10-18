@@ -20,6 +20,10 @@ The accounting screen presents a trial balance above the journal. Account codes 
 
 ## Public landing page
 
+French/English controls use a shared compact pill with the existing lime active color on the landing, authentication pages and workspace. Both language links remain available on mobile. The server stores the selected language in a host-only cookie, translates controlled interface copy and preserves customer, product, organization and document values. HTML language metadata, accessible names, validation messages, HTMX fragments and printable sales documents follow the same request language. Language links return to the current local route including its query string.
+
+The pricing section uses three comparable monthly USD plans: $49 for 200 invoices, $79 for 500 and $150 for unlimited invoices. A subtle lime surface distinguishes the middle card without fabricated popularity claims. Cards stack on phones. Registration remains a demonstration flow with no payment; displayed plan allowances do not imply implemented billing or usage enforcement.
+
 The public `/` route uses Persuade mode, separate from the workspace. Its composition takes the supplied HTML's product-led sections and the supplied financial-page screenshot's navy/teal surfaces and lime accent. Self-hosted Manrope provides its display and body typography; `landing.css` is isolated from workspace styles. The actual Panlyack logo and existing growth photograph are reused. The hero invoice is explicitly illustrative, with no fabricated customer counts, reviews or performance claims. Feature descriptions cover implemented invoice, inventory, accounting and payment flows. Native `details` provides the mobile hamburger and FAQ without a JavaScript dependency; all sign-in and registration links lead to `/login` and `/register`. Reduced-motion preferences disable the single product entrance. The footer and FAQ identify the local demonstration scope.
 
 ## Verification of authentication/workspace alignment
