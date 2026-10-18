@@ -1,0 +1,20 @@
+{
+  "split": "validation",
+  "documents": 8,
+  "valid_json": 8,
+  "exact_fields": {
+    "number": 3,
+    "partner": 5,
+    "issue_date": 8,
+    "total": 5
+  },
+  "scope": "synthetic held-out images; layouts may overlap training; not real-document accuracy",
+  "normalized_fields": {
+    "number": 3,
+    "partner": 5,
+    "issue_date": 8,
+    "total": 6
+  },
+  "normalization": "Only total uses exact Decimal equality of schema-compatible strings; other fields remain exact.",
+  "source_file_sha256": "6e14a8d9812fec3483172b745c64fedd45347f62b44ea64119aa935b72b6df29"
+}

@@ -1,0 +1,34 @@
+{
+  "model": "HuggingFaceTB/SmolVLM-256M-Instruct",
+  "revision": "7e3e67edbbed1bf9888184d9df282b700a323964",
+  "gpu": "NVIDIA GeForce RTX 4060 Laptop GPU",
+  "train_images": 142,
+  "validation_images": 8,
+  "baseline_validation_loss": 1.5848531275987625,
+  "epochs": [
+    {
+      "epoch": 1,
+      "train_loss": 1.1908167921741244,
+      "validation_loss": 0.8956956118345261
+    },
+    {
+      "epoch": 2,
+      "train_loss": 0.5956457686990919,
+      "validation_loss": 0.48763664811849594
+    },
+    {
+      "epoch": 3,
+      "train_loss": 0.3564421549885416,
+      "validation_loss": 0.36286523938179016
+    }
+  ],
+  "production_ready": false,
+  "peak_gpu_gib": 5.763829231262207,
+  "completed": true,
+  "provenance": {
+    "original_report_sha256": "ff224c20b4272fc74d00169022dbade5151ad5bda7c8bf74d5fc6a9859dd5716",
+    "export": "Original report fields preserved; provenance added for publication",
+    "source_run": "invoice-smolvlm-ocr-lora",
+    "raw_data_and_model_weights_in_repository": false
+  }
+}

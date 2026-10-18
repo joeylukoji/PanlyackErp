@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE svg
+  PUBLIC '-//W3C//DTD SVG 1.0//EN'
+  'http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd'>
+<svg width="1600" height="760" preserveAspectRatio="xMinYMin meet" viewBox="0 0 1600 760" xmlns="http://www.w3.org/2000/svg" version="1.0" fill-rule="evenodd" xmlns:xlink="http://www.w3.org/1999/xlink">
+	<title>...</title>
+	<desc>...</desc>
+	<clipPath id="clip">
+		<rect x="0" y="0" width="1600" height="760"/>
+	</clipPath>
+	<g id="group" transform="scale(1,-1) translate(0,-760)" style="clip-path: url(#clip)">
+		<g transform="">
+			<rect x="0" y="0" width="1600" height="760" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(98%,98%,96%); fill-rule: evenodd;"/>
+			<text x="30" y="720" style="font-family: Helvetica-Bold; font-size: 30px;fill: rgb(3%,13%,17%); stroke:none;" transform="translate(0,1440) scale(1,-1)">PANLYACKERP | APPLICATION ARCHITECTURE</text>
+			<rect x="30" y="615" width="1540" height="80" rx="14" ry="14" style="stroke: rgb(3%,13%,17%); stroke-linecap: butt; stroke-width: 1.8; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<text x="52" y="660" style="font-family: Helvetica-Bold; font-size: 26px;fill: rgb(3%,13%,17%); stroke:none;" transform="translate(0,1320) scale(1,-1)">Browser: public site, sign-up / sign-in, bilingual workspace</text>
+			<text x="52" y="630" style="font-family: Helvetica; font-size: 20px;fill: rgb(35%,40%,42%); stroke:none;" transform="translate(0,1260) scale(1,-1)">Invoices, JSON export, stock, ledger, cash and dashboard | templ + HTMX + Tailwind</text>
+			<path d="M 545,615 L 545,575 Z" style="stroke: rgb(3%,13%,17%); stroke-linecap: butt; stroke-width: 2.5;"/>
+			<polygon points="545 575, 538 587, 552 587" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(3%,13%,17%); fill-rule: evenodd;"/>
+			<rect x="30" y="210" width="1030" height="365" rx="14" ry="14" style="stroke: rgb(3%,13%,17%); stroke-linecap: butt; stroke-width: 1.8; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<text x="52" y="540" style="font-family: Helvetica-Bold; font-size: 26px;fill: rgb(3%,13%,17%); stroke:none;" transform="translate(0,1080) scale(1,-1)">Go + Chi | modular monolith</text>
+			<text x="52" y="510" style="font-family: Helvetica; font-size: 20px;fill: rgb(35%,40%,42%); stroke:none;" transform="translate(0,1020) scale(1,-1)">Session-derived organization scope, CSRF, exact decimal validation</text>
+			<rect x="58" y="420" width="974" height="65" rx="14" ry="14" style="stroke: rgb(3%,13%,17%); stroke-linecap: butt; stroke-width: 1.8; fill: rgb(78%,94%,45%); fill-rule: evenodd;"/>
+			<text x="80" y="450" style="font-family: Helvetica-Bold; font-size: 26px;fill: rgb(3%,13%,17%); stroke:none;" transform="translate(0,900) scale(1,-1)">Workflows: registration, invoice posting, settlement</text>
+			<path d="M 545,420 L 545,392 Z" style="stroke: rgb(3%,13%,17%); stroke-linecap: butt; stroke-width: 2.5;"/>
+			<polygon points="545 392, 538 404, 552 404" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(3%,13%,17%); fill-rule: evenodd;"/>
+			<rect x="58" y="325" width="314" height="65" rx="14" ry="14" style="stroke: rgb(3%,13%,17%); stroke-linecap: butt; stroke-width: 1.8; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<text x="80" y="355" style="font-family: Helvetica-Bold; font-size: 26px;fill: rgb(3%,13%,17%); stroke:none;" transform="translate(0,710) scale(1,-1)">Identity</text>
+			<rect x="388" y="325" width="314" height="65" rx="14" ry="14" style="stroke: rgb(3%,13%,17%); stroke-linecap: butt; stroke-width: 1.8; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<text x="410" y="355" style="font-family: Helvetica-Bold; font-size: 26px;fill: rgb(3%,13%,17%); stroke:none;" transform="translate(0,710) scale(1,-1)">Documents</text>
+			<rect x="718" y="325" width="314" height="65" rx="14" ry="14" style="stroke: rgb(3%,13%,17%); stroke-linecap: butt; stroke-width: 1.8; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<text x="740" y="355" style="font-family: Helvetica-Bold; font-size: 26px;fill: rgb(3%,13%,17%); stroke:none;" transform="translate(0,710) scale(1,-1)">Inventory</text>
+			<rect x="58" y="240" width="314" height="65" rx="14" ry="14" style="stroke: rgb(3%,13%,17%); stroke-linecap: butt; stroke-width: 1.8; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<text x="80" y="270" style="font-family: Helvetica-Bold; font-size: 26px;fill: rgb(3%,13%,17%); stroke:none;" transform="translate(0,540) scale(1,-1)">Accounting</text>
+			<rect x="388" y="240" width="314" height="65" rx="14" ry="14" style="stroke: rgb(3%,13%,17%); stroke-linecap: butt; stroke-width: 1.8; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<text x="410" y="270" style="font-family: Helvetica-Bold; font-size: 26px;fill: rgb(3%,13%,17%); stroke:none;" transform="translate(0,540) scale(1,-1)">Cash</text>
+			<rect x="718" y="240" width="314" height="65" rx="14" ry="14" style="stroke: rgb(3%,13%,17%); stroke-linecap: butt; stroke-width: 1.8; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<text x="740" y="270" style="font-family: Helvetica-Bold; font-size: 26px;fill: rgb(3%,13%,17%); stroke:none;" transform="translate(0,540) scale(1,-1)">Reporting</text>
+			<rect x="1110" y="210" width="460" height="365" rx="14" ry="14" style="stroke: rgb(3%,13%,17%); stroke-linecap: butt; stroke-width: 1.8; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<text x="1132" y="540" style="font-family: Helvetica-Bold; font-size: 26px;fill: rgb(3%,13%,17%); stroke:none;" transform="translate(0,1080) scale(1,-1)">FastAPI | bounded HTTP</text>
+			<text x="1132" y="478" style="font-family: Helvetica-Bold; font-size: 24px;fill: rgb(3%,13%,17%); stroke:none;" transform="translate(0,956) scale(1,-1)">EasyOCR + Gemma 3 4B</text>
+			<text x="1132" y="444" style="font-family: Helvetica; font-size: 21px;fill: rgb(3%,13%,17%); stroke:none;" transform="translate(0,888) scale(1,-1)">Image / PDF -&gt; draft fields</text>
+			<text x="1132" y="385" style="font-family: Helvetica-Bold; font-size: 24px;fill: rgb(3%,13%,17%); stroke:none;" transform="translate(0,770) scale(1,-1)">Optional US role advisor</text>
+			<text x="1132" y="350" style="font-family: Helvetica; font-size: 21px;fill: rgb(3%,13%,17%); stroke:none;" transform="translate(0,700) scale(1,-1)">SmolVLM LoRA + local retrieval</text>
+			<text x="1132" y="286" style="font-family: Helvetica-Bold; font-size: 23px;fill: rgb(3%,13%,17%); stroke:none;" transform="translate(0,572) scale(1,-1)">Read-only suggestions</text>
+			<text x="1132" y="252" style="font-family: Helvetica; font-size: 21px;fill: rgb(3%,13%,17%); stroke:none;" transform="translate(0,504) scale(1,-1)">No ERP database access</text>
+			<path d="M 1060,515 L 1110,515 Z" style="stroke: rgb(3%,13%,17%); stroke-linecap: butt; stroke-width: 2.5; stroke-dasharray: 7, 5;"/>
+			<polygon points="1110 515, 1098 508, 1098 522" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(3%,13%,17%); fill-rule: evenodd;"/>
+			<path d="M 545,210 L 545,150 Z" style="stroke: rgb(3%,13%,17%); stroke-linecap: butt; stroke-width: 2.5;"/>
+			<polygon points="545 150, 538 162, 552 162" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(3%,13%,17%); fill-rule: evenodd;"/>
+			<rect x="30" y="50" width="1030" height="100" rx="14" ry="14" style="stroke: rgb(3%,13%,17%); stroke-linecap: butt; stroke-width: 1.8; fill: rgb(78%,94%,45%); fill-rule: evenodd;"/>
+			<text x="52" y="115" style="font-family: Helvetica-Bold; font-size: 26px;fill: rgb(3%,13%,17%); stroke:none;" transform="translate(0,230) scale(1,-1)">PostgreSQL | module-owned schemas</text>
+			<text x="52" y="85" style="font-family: Helvetica; font-size: 20px;fill: rgb(35%,40%,42%); stroke:none;" transform="translate(0,170) scale(1,-1)">Atomic posting: stock + journal + cash + audit + outbox + projection</text>
+			<rect x="1110" y="50" width="460" height="100" rx="14" ry="14" style="stroke: rgb(3%,13%,17%); stroke-linecap: butt; stroke-width: 1.8; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<text x="1132" y="115" style="font-family: Helvetica-Bold; font-size: 26px;fill: rgb(3%,13%,17%); stroke:none;" transform="translate(0,230) scale(1,-1)">Local document files</text>
+			<text x="1132" y="85" style="font-family: Helvetica; font-size: 20px;fill: rgb(35%,40%,42%); stroke:none;" transform="translate(0,170) scale(1,-1)">Bounded uploads + SHA-256</text>
+			<path d="M 545,185 L 1340,185 Z" style="stroke: rgb(3%,13%,17%); stroke-linecap: butt; stroke-width: 2.5; stroke-dasharray: 7, 5;"/>
+			<polygon points="1340 185, 1328 178, 1328 192" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(3%,13%,17%); fill-rule: evenodd;"/>
+			<path d="M 1340,185 L 1340,150 Z" style="stroke: rgb(3%,13%,17%); stroke-linecap: butt; stroke-width: 2.5; stroke-dasharray: 7, 5;"/>
+			<polygon points="1340 150, 1333 162, 1347 162" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(3%,13%,17%); fill-rule: evenodd;"/>
+			<text x="30" y="16" style="font-family: Helvetica; font-size: 20px;fill: rgb(3%,13%,17%); stroke:none;" transform="translate(0,32) scale(1,-1)">Modules do not import each other. Workflows coordinate ports. Dashed lines denote service or file boundaries.</text>
+		</g>
+	</g>
+</svg>

@@ -1,0 +1,49 @@
+{
+  "model": "HuggingFaceTB/SmolVLM-256M-Instruct",
+  "revision": "7e3e67edbbed1bf9888184d9df282b700a323964",
+  "dataset_sha256": "2acf56dbdf5d8034ebe08b67a9b95070a897e5ac52b222eb68d6b5aa8e06ca50",
+  "train": 184,
+  "validation": 46,
+  "reserved_test": 46,
+  "source": "synthetic Go US purchase/sales/settlement and balanced cash-bank cases; explicit tax treatment; not accountant-reviewed",
+  "production_ready": false,
+  "prompt_version": 2,
+  "rag_examples": "train partition only; structural examples repeat across product holdouts",
+  "baseline_validation_loss": 0.9383456085039221,
+  "epochs": [
+    {
+      "epoch": 1,
+      "training_loss": 0.23751946690785902,
+      "validation_loss": 0.005913686979076137
+    },
+    {
+      "epoch": 2,
+      "training_loss": 0.0029216356855138893,
+      "validation_loss": 0.0017570091092594616
+    },
+    {
+      "epoch": 3,
+      "training_loss": 0.0014392696232433714,
+      "validation_loss": 0.0011843727122101448
+    },
+    {
+      "epoch": 4,
+      "training_loss": 0.0010512578535227753,
+      "validation_loss": 0.0009238643814688144
+    }
+  ],
+  "best_validation_loss": 0.0009238643814688144,
+  "public_context_sha256": "76af1a8aeddf68f5c6483eaa2948526d81ebe9e540f65f5fbf727a2b54ab619d",
+  "best_epoch": 4,
+  "completed": true,
+  "valid_roles": 46,
+  "exact_roles": 46,
+  "peak_gpu_gib": 2.6541218757629395,
+  "test_evaluated": false,
+  "provenance": {
+    "original_report_sha256": "e3b605a68f3d4298d76cf95256227dbc9b7a2ad4f7f5447d646f148e7ccf3a2c",
+    "export": "Original report fields preserved; provenance added for publication",
+    "source_run": "us-account-role-rag-v2",
+    "raw_data_and_model_weights_in_repository": false
+  }
+}

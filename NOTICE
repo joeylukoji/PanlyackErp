@@ -1,0 +1,14 @@
+PanlyackERP
+Copyright 2026 Joy
+
+Original project code and documentation are licensed under the Apache License,
+Version 2.0. Third-party components retain their respective licenses.
+
+The vendored HTMX distribution is covered by web/static/htmx-license.txt.
+The Manrope font is covered by web/static/manrope-license.txt.
+Go and Python dependencies retain the notices distributed by their publishers.
+
+Model checkpoints, adapters, source invoice collections and public dataset
+snapshots are not distributed in this repository. Their publisher terms and
+dataset attribution requirements remain separate from this project's license.
+See docs/publication/REPRODUCIBILITY.md for model and data provenance.

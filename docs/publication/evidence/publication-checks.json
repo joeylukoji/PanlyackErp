@@ -1,0 +1,32 @@
+{
+  "date": "2026-10-18",
+  "commands": [
+    {
+      "command": "./scripts/dev.ps1 -Check",
+      "result": "passed; go test ./... and go vet ./...; default test invocation may use cache"
+    },
+    {
+      "command": ".venv/Scripts/python.exe -m pytest ai-service/tests -q",
+      "result": "67 passed, 1 upstream Starlette/httpx deprecation warning"
+    },
+    {
+      "command": "go test ./internal/workflows/registration ./internal/workflows/invoiceposting -count=1 -v",
+      "result": "passed with TEST_DATABASE_URL set; isolated real PostgreSQL databases, registration and posting tests executed, not skipped"
+    },
+    {
+      "command": "python docs/publication/build_article.py",
+      "result": "passed; PDF has exactly three pages; all three rendered pages visually inspected"
+    }
+  ],
+  "history_scan": {
+    "historical_blobs_checked": 400,
+    "known_secret_or_token_pattern_findings": [],
+    "large_objects_over_20mb": [],
+    "scope": "Git history only; exact local secret comparison and token/private-key patterns; not a complete vulnerability audit"
+  },
+  "limitations": [
+    "Pattern-based secret scan is not a complete security audit",
+    "No additional model training or reserved-test evaluation performed for this publication",
+    "Production deployment remains disabled"
+  ]
+}

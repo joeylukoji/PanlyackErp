@@ -4,6 +4,16 @@ A local ERP MVP that turns a reviewed invoice into inventory, journal and cash o
 
 Go + Chi · templ + HTMX + Tailwind · PostgreSQL · FastAPI
 
+Created and maintained by **Joy**. Original code and documentation are licensed under [Apache 2.0](LICENSE); third-party notices remain in [NOTICE](NOTICE).
+
+## Technical article and architecture
+
+Read the **[three-page technical article](docs/publication/PanlyackERP-Technical-Article.pdf)**, its [Markdown source](docs/publication/article.md), and the [implementation and reproduction record](docs/publication/REPRODUCIBILITY.md). The article separates the live OCR/Gemma workflow, experimental invoice-header adapters, and the read-only US account-role adapter with local retrieval. It includes measured results, provenance and explicit evaluation limits.
+
+![Invoice runtime and local adapter experiments](docs/publication/assets/invoice-model-pipeline.png)
+
+The complete application diagram is available as [SVG](docs/publication/assets/application-architecture.svg), [PNG](docs/publication/assets/application-architecture.png) and [editable Mermaid](docs/publication/assets/application-architecture.mmd). Model weights, source invoice datasets and credentials are not included in this repository.
+
 **Status:** the purchase invoice demo and later settlement flow support self-service local test accounts. Each registration creates an isolated organization with its own opening balances. This is not a production SaaS release. The broader blueprint includes capabilities still outside this delivery; see [implementation status](docs/implementation-status.md).
 
 ## Quick start with Docker

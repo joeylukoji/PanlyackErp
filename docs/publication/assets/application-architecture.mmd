@@ -1,0 +1,22 @@
+flowchart TB
+    Browser["Browser: public site, registration/login, bilingual HTMX workspace"]
+    Go["Go + Chi + templ: authenticated organization scope and CSRF"]
+    Workflow["Registration / invoice posting / settlement workflows"]
+    Identity[Identity]
+    Documents[Documents]
+    Inventory[Inventory]
+    Accounting[Accounting]
+    Cash[Cash]
+    Reporting[Reporting]
+    PG[("PostgreSQL: module schemas, journal, audit, outbox, dashboard projection")]
+    Storage[("Local document files: bounded uploads and SHA-256 provenance")]
+    Extraction["FastAPI: bounded recognition and read-only US role proposals"]
+    Models["EasyOCR + Gemma 3 4B / optional SmolVLM role LoRA + local retrieval"]
+    Browser --> Go
+    Go --> Workflow
+    Workflow --> Identity & Documents & Inventory & Accounting & Cash & Reporting
+    Identity & Documents & Inventory & Accounting & Cash & Reporting --> PG
+    Documents --> Storage
+    Go -. "bounded HTTP requests; no ERP database access" .-> Extraction
+    Extraction --> Models
+    PG -. "organization-scoped queries" .-> Go

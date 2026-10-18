@@ -1,0 +1,4 @@
+# Preserve PDF bytes and cross-platform reference sources on checkout.
+*.pdf binary
+*.svg text eol=lf
+*.mmd text eol=lf
