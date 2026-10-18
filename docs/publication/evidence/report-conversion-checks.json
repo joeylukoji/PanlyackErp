@@ -1,0 +1,32 @@
+{
+  "source_pdf": "PanlyackERP-Technical-Report-Hacktoberfest.pdf",
+  "source_pdf_sha256": "771ead7637bc8af7528dc967ce8b38ccb3742d0087d64f12e5fffbf04e63d197",
+  "updated_pdf_sha256": "5ab866e0aaec47f7a149dc70d9da09aa2495177df5b0192219546fe71bc92f93",
+  "pages": 6,
+  "all_page_text_unchanged": true,
+  "untouched_pages_pixel_identical": [
+    1,
+    4,
+    5,
+    6
+  ],
+  "original_svg_files_preserved": {
+    "PanlyackERP_architecture.svg": {
+      "published_as": "assets/application-architecture.svg",
+      "sha256": "dd534e608a42dfe7eabe56a7c4352cfa27dad68a12f52b328fff9da066b027f8"
+    },
+    "PanlyackERP_humanise.svg": {
+      "published_as": "assets/invoice-model-pipeline.svg",
+      "sha256": "6fe7318e102316219c5e94a86b876702756f22be550049255f5ad7b363bbf701"
+    }
+  },
+  "markdown": {
+    "numbered_sections": 10,
+    "references": 29,
+    "tables": 5,
+    "code_fences_balanced": true,
+    "unmapped_private_use_glyphs": 0,
+    "local_figure_links_resolve": true
+  },
+  "scope": "Document and asset update only. External bibliography claims not independently validated. Application tests were not rerun."
+}

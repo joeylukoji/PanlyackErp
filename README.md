@@ -8,11 +8,13 @@ Created and maintained by **Joy**. Original code and documentation are licensed 
 
 ## Technical article and architecture
 
-Read the **[three-page technical article](docs/publication/PanlyackERP-Technical-Article.pdf)**, its [Markdown source](docs/publication/article.md), and the [implementation and reproduction record](docs/publication/REPRODUCIBILITY.md). The article separates the live OCR/Gemma workflow, experimental invoice-header adapters, and the read-only US account-role adapter with local retrieval. It includes measured results, provenance and explicit evaluation limits.
+Read the **[technical report for Hacktoberfest](docs/publication/PanlyackERP-Technical-Article.pdf)**, the **[submission-ready Markdown article](docs/publication/article.md)**, and the [implementation and reproduction record](docs/publication/REPRODUCIBILITY.md). The current report preserves the supplied six-page document, including its ten sections, tables and 29 references, with updated figures. It separates the live OCR/Gemma workflow, experimental invoice-header adapters, and the read-only US account-role adapter with local retrieval.
 
 ![Invoice runtime and local adapter experiments](docs/publication/assets/invoice-model-pipeline.png)
 
-The complete application diagram is available as [SVG](docs/publication/assets/application-architecture.svg), [PNG](docs/publication/assets/application-architecture.png) and [editable Mermaid](docs/publication/assets/application-architecture.mmd). Model weights, source invoice datasets and credentials are not included in this repository.
+![Complete PanlyackERP software architecture](docs/publication/assets/application-architecture.png)
+
+The supplied illustrations are available as original SVG files: [software architecture](docs/publication/assets/application-architecture.svg) and [illustrated invoice pipeline](docs/publication/assets/invoice-model-pipeline.svg). PNG previews are used for portable article rendering. An [editable Mermaid overview](docs/publication/assets/application-architecture.mmd) also describes the module relationships. Model weights, source invoice datasets and credentials are not included in this repository.
 
 **Status:** the purchase invoice demo and later settlement flow support self-service local test accounts. Each registration creates an isolated organization with its own opening balances. This is not a production SaaS release. The broader blueprint includes capabilities still outside this delivery; see [implementation status](docs/implementation-status.md).
 

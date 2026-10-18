@@ -1,6 +1,6 @@
 # Reproduction and implementation record
 
-Author and maintainer: Joy. This record accompanies the three-page [technical article](article.md) and distinguishes implementation evidence from intended capabilities.
+Author and maintainer: Joy. This record accompanies the updated [technical report](article.md) and distinguishes implementation evidence from intended capabilities.
 
 ## How the application was built
 
@@ -74,10 +74,13 @@ Public context contains 40 generated Beancount ledger snippets and 40 Iowa expen
 - [Invoice training report](evidence/invoice-ocr-training.json): original report fields plus source-report checksum.
 - [Header generation summary](evidence/invoice-generation-summary.json): aggregate metrics only; no source images or label/prediction records.
 - [Accounting training report](evidence/us-account-role-training.json): original report fields plus source-report checksum.
-- [Current publication checks](evidence/publication-checks.json): commands actually run for this publication. A skipped PostgreSQL integration test is never treated as database verification.
+- [Initial publication checks](evidence/publication-checks.json): commands actually run for the earlier three-page version. A skipped PostgreSQL integration test is never treated as database verification.
+- [Report conversion checks](evidence/report-conversion-checks.json): source hashes, preserved six-page PDF text, original SVG integrity, Markdown structure and local link checks for the replacement report.
 - [Earlier runtime verification](../verification.md) and [advanced pipeline](../advanced-invoice-pipeline.md): recorded smoke tests and their limitations.
 
-The publication diagrams explain runtime responsibilities; they are not benchmark outputs. The pipeline infographic is illustrative, while the architecture SVG and Mermaid source remain editable. The PDF is built from `article.md` with `build_article.py` and checked to contain exactly three pages.
+The current illustrations are supplied by the project author as `PanlyackERP_architecture.svg` and `PanlyackERP_humanise.svg`; they replace the earlier publication figures. Their SVG sources are preserved, including their embedded fonts and associated [notices](assets/FONT-NOTICES.md). PNG previews were rendered locally with resvg 2.6.2 and the embedded font files converted to TrueType for the renderer. These figures explain responsibilities, not benchmark outputs.
+
+The replacement source is the author's six-page `PanlyackERP-Technical-Report-Hacktoberfest.pdf`. `build_article.py --source <supplied-pdf>` replaces its two image objects with aspect-preserving previews and verifies that all extracted page text remains unchanged. It does not regenerate or shorten the report. The Markdown conversion restores headings, lists, code blocks, tables, reference links and private-use font glyphs, while retaining the ten numbered sections and 29 references. Claims and bibliography supplied in that PDF were transcribed, not independently re-evaluated by the conversion. The source PDF and SVG hashes are recorded in the conversion evidence.
 
 ## Boundaries before deployment
 
